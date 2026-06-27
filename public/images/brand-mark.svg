@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" role="img" aria-label="PsiConecta">
+  <rect width="40" height="40" rx="12" fill="url(#psi-gradient)"/>
+  <defs>
+    <linearGradient id="psi-gradient" x1="8" y1="4" x2="32" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <path d="M20 8v24M12 14c0 4.5 3.2 8 8 8s8-3.5 8-8" stroke="#fff" stroke-width="2.75" stroke-linecap="round"/>
+</svg>

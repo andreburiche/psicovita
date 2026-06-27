@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-label="QR Code PIX">
+  <rect width="240" height="240" fill="#ffffff"/>
+  <rect x="8" y="8" width="224" height="224" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+  <!-- cantos estilo QR -->
+  <rect x="28" y="28" width="52" height="52" rx="6" fill="none" stroke="#0f172a" stroke-width="6"/>
+  <rect x="40" y="40" width="28" height="28" rx="2" fill="#0f172a"/>
+  <rect x="160" y="28" width="52" height="52" rx="6" fill="none" stroke="#0f172a" stroke-width="6"/>
+  <rect x="172" y="40" width="28" height="28" rx="2" fill="#0f172a"/>
+  <rect x="28" y="160" width="52" height="52" rx="6" fill="none" stroke="#0f172a" stroke-width="6"/>
+  <rect x="40" y="172" width="28" height="28" rx="2" fill="#0f172a"/>
+  <!-- padrão central -->
+  <g fill="#0f172a">
+    <rect x="96" y="44" width="8" height="8"/><rect x="112" y="44" width="8" height="8"/><rect x="128" y="44" width="8" height="8"/>
+    <rect x="88" y="60" width="8" height="8"/><rect x="104" y="60" width="8" height="8"/><rect x="136" y="60" width="8" height="8"/>
+    <rect x="96" y="76" width="8" height="8"/><rect x="120" y="76" width="8" height="8"/><rect x="144" y="76" width="8" height="8"/>
+    <rect x="88" y="92" width="8" height="8"/><rect x="112" y="92" width="8" height="8"/><rect x="128" y="92" width="8" height="8"/>
+    <rect x="96" y="108" width="8" height="8"/><rect x="120" y="108" width="8" height="8"/><rect x="144" y="108" width="8" height="8"/>
+    <rect x="88" y="124" width="8" height="8"/><rect x="104" y="124" width="8" height="8"/><rect x="136" y="124" width="8" height="8"/>
+    <rect x="96" y="140" width="8" height="8"/><rect x="112" y="140" width="8" height="8"/><rect x="128" y="140" width="8" height="8"/>
+    <rect x="160" y="96" width="8" height="8"/><rect x="176" y="112" width="8" height="8"/><rect x="160" y="128" width="8" height="8"/>
+    <rect x="44" y="96" width="8" height="8"/><rect x="60" y="112" width="8" height="8"/><rect x="44" y="128" width="8" height="8"/>
+  </g>
+  <rect x="72" y="176" width="96" height="28" rx="14" fill="#32bcad"/>
+  <text x="120" y="195" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#ffffff">PIX</text>
+  <text x="120" y="218" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#64748b">Substitua por QR do seu banco</text>
+</svg>
