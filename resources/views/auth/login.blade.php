@@ -10,15 +10,7 @@
         method="POST"
         action="{{ route('login') }}"
         class="space-y-6"
-        x-data="{
-            showPassword: false,
-            email: @js(old('email', '')),
-            password: '',
-            fillTest(login, pass) {
-                this.email = login;
-                this.password = pass;
-            },
-        }"
+        x-data="{ showPassword: false }"
     >
         @csrf
 
@@ -29,43 +21,6 @@
                         <li>{{ $err }}</li>
                     @endforeach
                 </ul>
-            </div>
-        @endif
-
-        @if (app()->environment('local'))
-            <div class="rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/50 p-4 shadow-sm ring-1 ring-amber-100 dark:border-amber-900/60 dark:from-amber-950/40 dark:via-slate-900/80 dark:to-amber-950/20 dark:ring-amber-900/40">
-                <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
-                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-amber-200/80 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100" aria-hidden="true">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-4.127-4.11l4.655-5.653m3.182 5.579a11.454 11.454 0 01-.982-2.172M5.265 7.698l7.432 9.975a2.548 2.548 0 004.127 4.11l7.432-9.975m-9.56 4.22c.052-.055.115-.1.184-.131m2.118-2.114a11.463 11.463 0 00-2.114 2.118" />
-                        </svg>
-                    </span>
-                    {{ __('Testes — ambiente local') }}
-                </p>
-                <p class="mt-1.5 text-xs text-amber-800/90 dark:text-amber-200/90">{{ __('Palavra-passe em todas: password') }}</p>
-                <div class="mt-3 grid gap-2 sm:grid-cols-3">
-                    <button
-                        type="button"
-                        class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-300/80 bg-white px-3 py-2.5 text-xs font-semibold text-amber-950 shadow-sm transition hover:border-amber-400 hover:bg-amber-100/80 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-50 dark:hover:bg-amber-900/80"
-                        @click="fillTest('profissional@psiconecta.test', 'password')"
-                    >
-                        {{ __('Profissional demo') }}
-                    </button>
-                    <button
-                        type="button"
-                        class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-300/80 bg-white px-3 py-2.5 text-xs font-semibold text-amber-950 shadow-sm transition hover:border-amber-400 hover:bg-amber-100/80 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-50 dark:hover:bg-amber-900/80"
-                        @click="fillTest('paciente@psiconecta.test', 'password')"
-                    >
-                        {{ __('Paciente demo') }}
-                    </button>
-                    <button
-                        type="button"
-                        class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-300/80 bg-white px-3 py-2.5 text-xs font-semibold text-amber-950 shadow-sm transition hover:border-amber-400 hover:bg-amber-100/80 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-50 dark:hover:bg-amber-900/80"
-                        @click="fillTest('admin@psiconecta.local', 'password')"
-                    >
-                        {{ __('Admin demo') }}
-                    </button>
-                </div>
             </div>
         @endif
 
@@ -95,7 +50,7 @@
                             id="email"
                             type="email"
                             name="email"
-                            x-model="email"
+                            value="{{ old('email') }}"
                             class="{{ $inputBase }} pl-10"
                             required
                             autofocus
@@ -127,7 +82,6 @@
                             id="password"
                             x-bind:type="showPassword ? 'text' : 'password'"
                             name="password"
-                            x-model="password"
                             class="{{ $inputBase }} pl-10 pe-12"
                             required
                             autocomplete="current-password"
