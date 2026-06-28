@@ -91,10 +91,20 @@ class AdminProfessionalSubscriptionTest extends TestCase
 
     public function test_admin_can_manually_confirm_subscription_payment(): void
     {
+        config(['subscription.require_admin_after_payment' => true]);
+
         $admin = User::factory()->create(['role' => UserRole::Admin]);
         $professional = User::factory()->create(['role' => UserRole::Professional]);
 
         $plan = SubscriptionPlan::query()->where('slug', SubscriptionPlanSlug::Premium)->firstOrFail();
+
+        $professional->professionalSubscription->update([
+            'status' => SubscriptionStatus::PastDue,
+            'gateway_meta' => [
+                'payment_confirmed_at' => now()->toIso8601String(),
+                'billing_cycle' => 'monthly',
+            ],
+        ]);
 
         $this->actingAs($admin)
             ->patch(route('admin.subscriptions.update', $professional->professionalSubscription), [
@@ -111,5 +121,29 @@ class AdminProfessionalSubscriptionTest extends TestCase
         $this->assertTrue($subscription->isManuallyValidated());
         $this->assertNotNull($subscription->ends_at);
         $this->assertTrue(app(SubscriptionService::class)->isActive($professional));
+    }
+
+    public function test_admin_cannot_confirm_without_payment(): void
+    {
+        config(['subscription.require_admin_after_payment' => true]);
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $professional = User::factory()->create(['role' => UserRole::Professional]);
+        $plan = SubscriptionPlan::query()->where('slug', SubscriptionPlanSlug::Premium)->firstOrFail();
+
+        $professional->professionalSubscription->update([
+            'status' => SubscriptionStatus::Expired,
+            'trial_ends_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.subscriptions.update', $professional->professionalSubscription), [
+                'subscription_plan_id' => $plan->id,
+                'billing_cycle' => 'monthly',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('manual');
+
+        $this->assertSame(SubscriptionStatus::Expired, $professional->fresh()->professionalSubscription->status);
     }
 }

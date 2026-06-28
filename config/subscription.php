@@ -12,6 +12,9 @@ return [
     /** Permite ao admin activar/renovar planos manualmente (sem Asaas/Mercado Pago). */
     'manual_activation_enabled' => env('SUBSCRIPTION_MANUAL_ACTIVATION', true),
 
+    /** Após pagamento (webhook/checkout), exige validação do admin para activar o plano. */
+    'require_admin_after_payment' => env('SUBSCRIPTION_REQUIRE_ADMIN_AFTER_PAYMENT', true),
+
     'annual_discount_percent' => (int) env('SUBSCRIPTION_ANNUAL_DISCOUNT_PERCENT', 17),
 
     /*

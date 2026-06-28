@@ -244,13 +244,15 @@ class SubscriptionService
                 ? now()->addYear()
                 : now()->addMonth();
 
+            $gatewayMeta['payment_confirmed_at'] = $isStub ? now()->toIso8601String() : null;
+
             $subscription = ProfessionalSubscription::query()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'subscription_plan_id' => $plan->id,
-                    'status' => $isStub ? SubscriptionStatus::Active : SubscriptionStatus::PastDue,
+                    'status' => SubscriptionStatus::PastDue,
                     'starts_at' => now(),
-                    'ends_at' => $isStub ? $stubEndsAt : null,
+                    'ends_at' => null,
                     'trial_ends_at' => null,
                     'gateway_external_id' => $result['external_id'],
                     'gateway_meta' => $gatewayMeta,
@@ -258,7 +260,17 @@ class SubscriptionService
                 ],
             );
 
-            return $subscription->fresh(['plan']);
+            $subscription = $subscription->fresh(['plan']);
+
+            if ($isStub && $this->requiresAdminAfterPayment()) {
+                return $subscription;
+            }
+
+            if ($isStub) {
+                return $this->activatePaidSubscription($subscription, $stubEndsAt);
+            }
+
+            return $subscription;
         } catch (AsaasApiException $e) {
             throw new \InvalidArgumentException($e->getMessage(), previous: $e);
         }
@@ -375,11 +387,37 @@ class SubscriptionService
             ? PaymentMethod::from((string) $subscription->gateway_meta['payment_method'])
             : PaymentMethod::Pix;
 
+        if ($subscription->isAwaitingAdminValidation()) {
+            return __('Pagamento registado. Aguarde a validação do administrador para reactivar o acesso.');
+        }
+
+        if ($this->requiresAdminAfterPayment()) {
+            if ($method === PaymentMethod::Card) {
+                return __('Assinatura criada. Conclua o pagamento com cartão; depois o administrador validará o plano.');
+            }
+
+            return __('Assinatura criada. Pague via PIX; após confirmação, o administrador activará o plano.');
+        }
+
         if ($method === PaymentMethod::Card) {
             return __('Assinatura criada. Conclua o primeiro pagamento com cartão no ambiente seguro.');
         }
 
         return __('Assinatura criada. Escaneie o QR Code PIX para activar o plano.');
+    }
+
+    public function hasClinicalAccess(User $user): bool
+    {
+        if ($this->isExempt($user) || ! $user->isProfessional()) {
+            return true;
+        }
+
+        return $this->isActive($this->billingUser($user));
+    }
+
+    public function requiresAdminAfterPayment(): bool
+    {
+        return (bool) config('subscription.require_admin_after_payment', true);
     }
 
     public function isCancellable(ProfessionalSubscription $subscription): bool
@@ -462,18 +500,45 @@ class SubscriptionService
         $isRenewal = filled($subscription->gateway_meta['last_renewal_at'] ?? null)
             || $subscription->status === SubscriptionStatus::Active;
 
+        if ($isRenewal && $subscription->status === SubscriptionStatus::Active) {
+            $endsAt = $this->nextRenewalEndsAt($subscription);
+
+            $subscription->update([
+                'status' => SubscriptionStatus::Active,
+                'ends_at' => $endsAt,
+                'gateway_meta' => array_merge($subscription->gateway_meta ?? [], array_filter([
+                    'payment_confirmed_at' => now()->toIso8601String(),
+                    'last_renewal_payment_id' => $paymentExternalId,
+                    'last_renewal_at' => now()->toIso8601String(),
+                ])),
+            ]);
+
+            $subscription = $subscription->fresh(['plan', 'user']);
+            $this->notifyAdminsAboutSubscriptionPayment($subscription, true);
+
+            return $subscription;
+        }
+
         $endsAt = $this->nextRenewalEndsAt($subscription);
 
         $subscription->update([
-            'status' => SubscriptionStatus::Active,
-            'ends_at' => $endsAt,
+            'status' => SubscriptionStatus::PastDue,
             'gateway_meta' => array_merge($subscription->gateway_meta ?? [], array_filter([
+                'payment_confirmed_at' => now()->toIso8601String(),
                 'last_renewal_payment_id' => $paymentExternalId,
-                'last_renewal_at' => now()->toIso8601String(),
             ])),
         ]);
 
         $subscription = $subscription->fresh(['plan', 'user']);
+
+        if ($this->requiresAdminAfterPayment()) {
+            $subscription = $this->tryActivateFromDualApproval($subscription, $endsAt);
+            $this->notifyAdminsAboutSubscriptionPayment($subscription, $isRenewal);
+
+            return $subscription;
+        }
+
+        $subscription = $this->activatePaidSubscription($subscription, $endsAt);
         $this->notifyAdminsAboutSubscriptionPayment($subscription, $isRenewal);
 
         return $subscription;
@@ -495,11 +560,14 @@ class SubscriptionService
             throw new \InvalidArgumentException(__('Seleccione um plano pago para validar o pagamento.'));
         }
 
+        if ($this->requiresAdminAfterPayment() && ! $subscription->hasPaymentConfirmation()) {
+            throw new \InvalidArgumentException(__('O pagamento ainda não foi confirmado. O profissional deve concluir o checkout e efectuar o pagamento antes da validação administrativa.'));
+        }
+
         $endsAt = $validUntil ?? $this->manualActivationEndsAt($subscription, $billingCycle);
 
         $subscription->update([
             'subscription_plan_id' => $plan->id,
-            'status' => SubscriptionStatus::Active,
             'starts_at' => $subscription->starts_at ?? now(),
             'ends_at' => $endsAt,
             'trial_ends_at' => null,
@@ -511,11 +579,20 @@ class SubscriptionService
                 'manual_validated_by' => $admin->id,
                 'manual_validated_by_name' => $admin->name,
                 'manual_note' => $note,
-                'last_renewal_at' => now()->toIso8601String(),
             ], fn ($value) => $value !== null && $value !== '')),
         ]);
 
         $subscription = $subscription->fresh(['plan', 'user']);
+        $subscription = $this->tryActivateFromDualApproval($subscription, $endsAt);
+
+        if ($subscription->status === SubscriptionStatus::Active) {
+            $subscription->update([
+                'gateway_meta' => array_merge($subscription->gateway_meta ?? [], [
+                    'last_renewal_at' => now()->toIso8601String(),
+                ]),
+            ]);
+            $subscription = $subscription->fresh(['plan', 'user']);
+        }
 
         \App\Support\AuditTrail::entity('manual_confirm', 'professional_subscriptions', $subscription, [
             'plan_id' => $plan->id,
@@ -670,16 +747,25 @@ class SubscriptionService
         if ($subscription === null) {
             return $this->finalizeBannerContext([
                 'level' => 'danger',
-                'message' => __('Não há assinatura activa. Renove para continuar a criar pacientes, sessões, prontuários e utilizar a IA.'),
+                'message' => __('Não há assinatura activa. Efectue o pagamento e aguarde a validação do administrador para recuperar o acesso.'),
                 'days_remaining' => null,
                 'subscription' => null,
+            ], $user);
+        }
+
+        if ($subscription->isAwaitingAdminValidation()) {
+            return $this->finalizeBannerContext([
+                'level' => 'warning',
+                'message' => __('Pagamento registado. O acesso será reactivado após validação do administrador em Assinaturas profissionais.'),
+                'days_remaining' => 0,
+                'subscription' => $subscription,
             ], $user);
         }
 
         if (! $this->subscriptionIsCurrentlyValid($subscription)) {
             return $this->finalizeBannerContext([
                 'level' => 'danger',
-                'message' => __('A sua assinatura expirou. Pode consultar os dados existentes, mas novas acções estão bloqueadas.'),
+                'message' => __('O período de teste expirou ou a assinatura está inactiva. Efectue o pagamento e aguarde a validação do administrador para recuperar o acesso.'),
                 'days_remaining' => 0,
                 'subscription' => $subscription,
             ], $user);
@@ -700,7 +786,7 @@ class SubscriptionService
         if ($daysRemaining < 0) {
             return $this->finalizeBannerContext([
                 'level' => 'danger',
-                'message' => __('A sua assinatura expirou. Pode consultar os dados existentes, mas novas acções estão bloqueadas.'),
+                'message' => __('O período de teste expirou ou a assinatura está inactiva. Efectue o pagamento e aguarde a validação do administrador para recuperar o acesso.'),
                 'days_remaining' => 0,
                 'subscription' => $subscription,
             ], $user);
@@ -873,6 +959,37 @@ class SubscriptionService
         return $billingCycle === BillingCycle::Yearly
             ? $base->addYear()
             : $base->addMonth();
+    }
+
+    private function tryActivateFromDualApproval(ProfessionalSubscription $subscription, Carbon $endsAt): ProfessionalSubscription
+    {
+        if (! $this->requiresAdminAfterPayment()) {
+            if ($subscription->hasPaymentConfirmation()) {
+                return $this->activatePaidSubscription($subscription, $endsAt);
+            }
+
+            return $subscription;
+        }
+
+        if (! $subscription->hasPaymentConfirmation() || ! $subscription->isManuallyValidated()) {
+            return $subscription->fresh(['plan', 'user']);
+        }
+
+        return $this->activatePaidSubscription($subscription, $endsAt);
+    }
+
+    private function activatePaidSubscription(ProfessionalSubscription $subscription, Carbon $endsAt): ProfessionalSubscription
+    {
+        $subscription->update([
+            'status' => SubscriptionStatus::Active,
+            'ends_at' => $endsAt,
+            'trial_ends_at' => null,
+            'gateway_meta' => array_merge($subscription->gateway_meta ?? [], [
+                'last_renewal_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        return $subscription->fresh(['plan', 'user']);
     }
 
     private function cancelGatewaySubscriptionRecord(ProfessionalSubscription $subscription): void

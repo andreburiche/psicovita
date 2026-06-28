@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'professional.api' => \App\Http\Middleware\EnsureProfessionalApi::class,
             'patient.api' => \App\Http\Middleware\EnsurePatientApi::class,
             'subscription.feature' => \App\Http\Middleware\EnsureSubscriptionFeature::class,
+            'subscription.access' => \App\Http\Middleware\EnsureProfessionalSubscriptionAccess::class,
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
         ]);

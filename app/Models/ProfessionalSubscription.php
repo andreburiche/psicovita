@@ -93,9 +93,19 @@ class ProfessionalSubscription extends Model
         return $this->ends_at;
     }
 
+    public function hasPaymentConfirmation(): bool
+    {
+        return filled($this->gateway_meta['payment_confirmed_at'] ?? null);
+    }
+
     public function isManuallyValidated(): bool
     {
         return filled($this->gateway_meta['manual_validated_at'] ?? null);
+    }
+
+    public function isAwaitingAdminValidation(): bool
+    {
+        return $this->hasPaymentConfirmation() && ! $this->isManuallyValidated();
     }
 
     public function manualValidatorLabel(): ?string

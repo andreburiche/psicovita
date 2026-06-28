@@ -142,6 +142,14 @@
                                             · {{ $item->manualValidatorLabel() }}
                                         @endif
                                     </p>
+                                @elseif ($item->isAwaitingAdminValidation())
+                                    <p class="mt-1 text-xs font-medium text-sky-700 dark:text-sky-300">
+                                        {{ __('Pagamento confirmado — aguarda validação admin') }}
+                                    </p>
+                                @elseif ($item->hasPaymentConfirmation())
+                                    <p class="mt-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                        {{ __('Pagamento confirmado') }}
+                                    </p>
                                 @elseif (filled($item->gateway_external_id))
                                     <p class="mt-1 text-xs text-slate-400">{{ __('Asaas') }}: {{ Str::limit($item->gateway_external_id, 16) }}</p>
                                 @endif

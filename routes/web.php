@@ -68,7 +68,7 @@ Route::get('/', function () {
         : app(LandingController::class)();
 })->name('home');
 
-Route::middleware(['auth', 'verified', 'professional'])->group(function () {
+Route::middleware(['auth', 'verified', 'professional', 'subscription.access'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('patients/{patient}/conversa', [ConversationController::class, 'startFromPatient'])

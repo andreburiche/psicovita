@@ -33,7 +33,7 @@ class SubscriptionTest extends TestCase
         ]);
     }
 
-    public function test_expired_subscription_blocks_create_but_allows_index(): void
+    public function test_expired_subscription_blocks_clinical_area(): void
     {
         $user = User::factory()->create();
         $subscription = $user->professionalSubscription;
@@ -48,9 +48,13 @@ class SubscriptionTest extends TestCase
 
         $this->post(route('patients.store'), [
             'name' => 'Bloqueado',
-        ])->assertForbidden();
+        ])->assertRedirect(route('subscription.checkout'));
 
-        $this->get(route('patients.index'))->assertOk();
+        $this->get(route('patients.index'))
+            ->assertRedirect(route('subscription.checkout'))
+            ->assertSessionHas('subscription_blocked');
+
+        $this->get(route('subscription.checkout'))->assertOk();
     }
 
     public function test_essencial_plan_blocks_ai_but_allows_patient_create(): void
@@ -206,6 +210,8 @@ class SubscriptionTest extends TestCase
 
     public function test_professional_can_checkout_subscription_with_pix(): void
     {
+        config(['subscription.require_admin_after_payment' => true]);
+
         $user = User::factory()->create();
         $plan = SubscriptionPlan::query()->where('slug', SubscriptionPlanSlug::Essencial)->firstOrFail();
 
@@ -224,7 +230,9 @@ class SubscriptionTest extends TestCase
 
         $subscription = $user->fresh()->professionalSubscription;
         $this->assertSame($plan->id, $subscription->subscription_plan_id);
-        $this->assertSame(SubscriptionStatus::Active, $subscription->status);
+        $this->assertSame(SubscriptionStatus::PastDue, $subscription->status);
+        $this->assertTrue($subscription->hasPaymentConfirmation());
+        $this->assertTrue($subscription->isAwaitingAdminValidation());
         $this->assertNotNull($subscription->gateway_external_id);
         $pix = $subscription->gateway_meta['pix'] ?? [];
         $this->assertTrue(\App\Support\PixCheckout::isDisplayable($pix));
@@ -279,12 +287,13 @@ class SubscriptionTest extends TestCase
             'subscription_plan_id' => $plan->id,
             'payment_method' => PaymentMethod::Pix->value,
             'billing_cycle' => BillingCycle::Yearly->value,
-        ])->assertRedirect(route('subscription.checkout'));
+        ])->assertRedirect(route('subscription.checkout').'#pix-checkout');
 
         $subscription = $user->fresh()->professionalSubscription;
         $this->assertSame(BillingCycle::Yearly->value, $subscription->gateway_meta['billing_cycle'] ?? null);
-        $this->assertNotNull($subscription->ends_at);
-        $this->assertTrue($subscription->ends_at->greaterThan(now()->addMonths(11)));
+        $this->assertSame(SubscriptionStatus::PastDue, $subscription->status);
+        $this->assertTrue($subscription->hasPaymentConfirmation());
+        $this->assertNull($subscription->ends_at);
     }
 
     public function test_yearly_subscription_webhook_extends_by_one_year(): void
@@ -375,7 +384,7 @@ class SubscriptionTest extends TestCase
             'subscription_plan_id' => $essencial->id,
             'payment_method' => PaymentMethod::Pix->value,
             'billing_cycle' => BillingCycle::Monthly->value,
-        ])->assertRedirect(route('subscription.checkout'));
+        ])->assertRedirect(route('subscription.checkout').'#pix-checkout');
 
         $firstGatewayId = $user->fresh()->professionalSubscription->gateway_external_id;
         $this->assertNotNull($firstGatewayId);
@@ -384,7 +393,7 @@ class SubscriptionTest extends TestCase
             'subscription_plan_id' => $premium->id,
             'payment_method' => PaymentMethod::Card->value,
             'billing_cycle' => BillingCycle::Monthly->value,
-        ])->assertRedirect(route('subscription.checkout'));
+        ])->assertRedirect(route('subscription.checkout').'#pix-checkout');
 
         $subscription = $user->fresh()->professionalSubscription;
         $this->assertSame($premium->id, $subscription->subscription_plan_id);
@@ -574,9 +583,12 @@ class SubscriptionTest extends TestCase
             ->assertSee('12/50', false);
     }
 
-    public function test_subscription_webhook_activates_past_due_plan(): void
+    public function test_subscription_webhook_waits_for_admin_before_activation(): void
     {
-        config(['asaas.webhook_token' => 'sub-token']);
+        config([
+            'asaas.webhook_token' => 'sub-token',
+            'subscription.require_admin_after_payment' => true,
+        ]);
 
         $user = User::factory()->create();
         $plan = SubscriptionPlan::query()->where('slug', SubscriptionPlanSlug::Premium)->firstOrFail();
@@ -599,7 +611,9 @@ class SubscriptionTest extends TestCase
         ], ['asaas-access-token' => 'sub-token'])->assertOk();
 
         $subscription = $user->fresh()->professionalSubscription;
-        $this->assertSame(SubscriptionStatus::Active, $subscription->status);
-        $this->assertNotNull($subscription->ends_at);
+        $this->assertSame(SubscriptionStatus::PastDue, $subscription->status);
+        $this->assertTrue($subscription->hasPaymentConfirmation());
+        $this->assertTrue($subscription->isAwaitingAdminValidation());
+        $this->assertNull($subscription->ends_at);
     }
 }

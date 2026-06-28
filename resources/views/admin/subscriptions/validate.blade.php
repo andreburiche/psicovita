@@ -4,7 +4,7 @@
     <div class="mx-auto max-w-2xl space-y-6">
         <x-page-hero
             :title="__('Confirmar assinatura manualmente')"
-            :subtitle="__('Use enquanto Asaas ou Mercado Pago não estiverem configurados. O profissional terá acesso imediato ao plano seleccionado.')"
+            :subtitle="__('Após o profissional efectuar o pagamento, confirme aqui para reactivar o plano. Pagamento + validação administrativa são obrigatórios.')"
             icon="banknote"
             iconTone="emerald"
         />
@@ -29,6 +29,12 @@
                         <span @class(['inline-flex rounded-full px-2 py-0.5 text-xs font-semibold', $subscription->status->badgeClass()])>
                             {{ $subscription->status->label() }}
                         </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500">{{ __('Pagamento confirmado') }}</dt>
+                    <dd class="font-medium text-slate-900 dark:text-white">
+                        {{ $subscription->hasPaymentConfirmation() ? __('Sim') : __('Não — aguardando pagamento do profissional') }}
                     </dd>
                 </div>
                 <div>
