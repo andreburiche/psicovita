@@ -71,8 +71,8 @@
             />
             <span>
                 {!! __('Li e aceito os :terms e a :privacy.', [
-                    'terms' => '<a href="'.route('terms').'" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400" target="_blank" rel="noopener">'.__('Termos de Uso').'</a>',
-                    'privacy' => '<a href="'.route('privacy').'" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400" target="_blank" rel="noopener">'.__('Política de Privacidade').'</a>',
+                    'terms' => '<a href="'.route('legal.terms').'" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400" target="_blank" rel="noopener">'.__('Termos de Uso').'</a>',
+                    'privacy' => '<a href="'.route('legal.privacy').'" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400" target="_blank" rel="noopener">'.__('Política de Privacidade').'</a>',
                 ]) !!}
             </span>
         </label>
