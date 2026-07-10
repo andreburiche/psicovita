@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
 
 class SocialAuthController extends Controller
@@ -28,7 +29,16 @@ class SocialAuthController extends Controller
     {
         $this->guardProvider($provider);
 
-        $socialUser = Socialite::driver($provider)->user();
+        try {
+            $socialUser = Socialite::driver($provider)->user();
+        } catch (InvalidStateException) {
+            return redirect()
+                ->route('login')
+                ->withErrors(['email' => __('A sessão do login com :provider expirou ou é inválida. Clique novamente em «Continuar com Google» (não atualize a página do callback).', [
+                    'provider' => ucfirst($provider),
+                ])]);
+        }
+
         $email = trim((string) $socialUser->getEmail());
 
         if ($email === '') {

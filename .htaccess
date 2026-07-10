@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Se o pedido já estiver a apontar para /public, não reescrever de novo.
+    RewriteRule ^public/ - [L]
+
+    # Enviar todo o tráfego para a pasta public/ do Laravel.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
