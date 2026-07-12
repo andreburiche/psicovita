@@ -215,8 +215,26 @@ Definição: `bootstrap/app.php` → `withSchedule`.
 
 ### 7.2 Google OAuth
 
-- Redirect autorizado = `GOOGLE_REDIRECT_URI` exacto  
+- Redirect autorizado = `GOOGLE_REDIRECT_URI` exacto (ex.: `https://psicovita.online/auth/google/callback`)
+- `APP_URL` deve ser a URL pública sem `/public` no fim
 - `InvalidStateException`: sessão perdida / F5 no callback / URI incorrecta  
+
+**Erro `Not Acceptable!` / Mod_Security no login Google**
+
+O WAF da HostGator bloqueia o callback com `?code=` e `state=`. O ficheiro `public/.htaccess` já tenta isentar esse caminho.
+
+Se continuar a falhar:
+
+1. **cPanel → Security → ModSecurity** → desactivar para o domínio `psicovita.online` (ou só testar).
+2. Pedir ao suporte HostGator whitelist de:  
+   `https://psicovita.online/auth/google/callback`
+3. Confirmar no Google Cloud Console a URI exacta (HTTPS, sem `/public`).
+4. No `.env` de produção:
+   ```env
+   APP_URL=https://psicovita.online
+   GOOGLE_REDIRECT_URI=https://psicovita.online/auth/google/callback
+   ```
+5. Depois de alterar `.env`: limpar cache (`php artisan config:clear`) ou apagar `bootstrap/cache/config.php`.
 
 ### 7.3 Evolution API (local)
 

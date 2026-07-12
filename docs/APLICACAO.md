@@ -9,6 +9,8 @@
 ## Índice
 
 1. [Visão geral](#1-visão-geral)
+
+
 2. [Perfis e acesso](#2-perfis-e-acesso)
 3. [Autenticação e onboarding](#3-autenticação-e-onboarding)
 4. [Área do profissional](#4-área-do-profissional)

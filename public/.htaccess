@@ -1,3 +1,13 @@
+# HostGator: login Google pode falhar com "Not Acceptable!" (Mod_Security).
+# Se o host permitir estas directivas, o callback OAuth deixa de ser bloqueado.
+# Caso contrário: cPanel → Security → ModSecurity → Off no domínio.
+<IfModule mod_security2.c>
+    SecRuleEngine Off
+</IfModule>
+<IfModule mod_security.c>
+    SecRuleEngine Off
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

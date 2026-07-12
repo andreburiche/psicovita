@@ -168,6 +168,7 @@ Agentes com perfil `support_agent` usam esta mesa sem acesso total de admin.
 |----------|--------|
 | Profissional sem acesso após pagar | Verificar pagamento confirmado + validar em Assinaturas |
 | Login Google falha em produção | URI de redirect = `https://dominio/auth/google/callback` |
+| Login Google: `Not Acceptable!` / Mod_Security | WAF HostGator a bloquear o callback — ver Manual Técnico §7.2; desactivar ModSecurity no domínio ou whitelist |
 | WhatsApp não envia | Ver `/admin/integracoes/whatsapp` e `.env` (driver/URL) |
 | Pedido LGPD sem resposta | Filtrar pendentes em Solicitações e actualizar estado |
 
