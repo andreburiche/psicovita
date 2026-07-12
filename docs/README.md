@@ -1,11 +1,23 @@
 # PsiConecta — Documentação
 
 > Plataforma Laravel para gestão clínica de psicologia e portal do paciente.  
-> Última atualização: junho de 2026.
+> Última atualização: julho de 2026.
 
 ---
 
-## Índice da documentação
+## Manuais de utilizador
+
+Pasta **[documentos/](../documentos/README.md)** — manuais prontos para equipa e clientes:
+
+| Manual | Conteúdo |
+|--------|----------|
+| [Manual do Paciente](../documentos/MANUAL_PACIENTE.md) | Portal, pagamentos, teleconsulta, LGPD |
+| [Manual do Administrador](../documentos/MANUAL_ADMINISTRADOR.md) | Assinaturas, LGPD, site, WhatsApp, suporte |
+| [Manual Técnico](../documentos/MANUAL_TECNICO.md) | Instalação, `.env`, HostGator, integrações |
+
+---
+
+## Índice da documentação técnica
 
 | Documento | Conteúdo |
 |-----------|----------|
