@@ -10,6 +10,7 @@
 
 | Documento | Público-alvo | Conteúdo |
 |-----------|--------------|----------|
+| [**FLUXOS.md**](FLUXOS.md) | Produto / engenharia / operação | Fluxos de funcionamento com diagramas (auth, assinatura, clínica, portal, vídeo, WhatsApp, admin, IA) |
 | [**MANUAL_PACIENTE.md**](MANUAL_PACIENTE.md) | Pacientes / utentes | Portal, pagamentos, consultas online, privacidade LGPD |
 | [**MANUAL_ADMINISTRADOR.md**](MANUAL_ADMINISTRADOR.md) | Administrador da plataforma / DPO | LGPD, assinaturas, site, chatbot, suporte |
 | [**MANUAL_TECNICO.md**](MANUAL_TECNICO.md) | DevOps / desenvolvedores | Instalação, `.env`, deploy HostGator, integrações, operações |
