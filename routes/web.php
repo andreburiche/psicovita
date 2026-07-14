@@ -263,6 +263,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/assinaturas', [ProfessionalSubscriptionAdminController::class, 'index'])->name('subscriptions.index');
         Route::get('/assinaturas/{subscription}/validar', [ProfessionalSubscriptionAdminController::class, 'edit'])->name('subscriptions.validate');
         Route::patch('/assinaturas/{subscription}', [ProfessionalSubscriptionAdminController::class, 'update'])->name('subscriptions.update');
+        Route::post('/assinaturas/{subscription}/cortesia', [ProfessionalSubscriptionAdminController::class, 'grantComplimentary'])->name('subscriptions.complimentary.grant');
+        Route::delete('/assinaturas/{subscription}/cortesia', [ProfessionalSubscriptionAdminController::class, 'revokeComplimentary'])->name('subscriptions.complimentary.revoke');
         Route::get('/site/parceiros', [LandingPartnerController::class, 'index'])->name('site.partners');
         Route::post('/site/parceiros', [LandingPartnerController::class, 'store'])->name('site.partners.store');
         Route::patch('/site/parceiros/{partner}', [LandingPartnerController::class, 'update'])->name('site.partners.update');

@@ -84,12 +84,16 @@ class SubscriptionService
         }
 
         $user = $this->billingUser($user);
+        $subscription = $this->activeSubscription($user);
+
+        if ($subscription?->hasComplimentaryAccess()) {
+            return true;
+        }
 
         if (! $this->isActive($user)) {
             return false;
         }
 
-        $subscription = $this->activeSubscription($user);
         if ($subscription === null || $subscription->plan === null) {
             return false;
         }
@@ -105,6 +109,11 @@ class SubscriptionService
 
         $billingUser = $this->billingUser($user);
         $subscription = $this->activeSubscription($billingUser);
+
+        if ($subscription?->hasComplimentaryAccess()) {
+            return null;
+        }
+
         $max = $subscription?->plan?->max_patients;
 
         if ($max === null || $max <= 0) {
@@ -605,6 +614,157 @@ class SubscriptionService
         return $subscription;
     }
 
+    /**
+     * Concede acesso clínico completo sem pagamento (benefício / cortesia).
+     * Não altera confirmações de pagamento nem o fluxo de dual-approval.
+     */
+    public function grantComplimentaryAccess(
+        User $admin,
+        ProfessionalSubscription $subscription,
+        ?SubscriptionPlan $plan = null,
+        ?Carbon $validUntil = null,
+        ?string $note = null,
+    ): ProfessionalSubscription {
+        if (! $admin->isAdmin()) {
+            throw new \InvalidArgumentException(__('Apenas administradores podem conceder acesso por cortesia.'));
+        }
+
+        $plan ??= SubscriptionPlan::query()
+            ->where('slug', SubscriptionPlanSlug::Clinica)
+            ->where('is_active', true)
+            ->first()
+            ?? SubscriptionPlan::query()
+                ->where('slug', SubscriptionPlanSlug::Premium)
+                ->where('is_active', true)
+                ->firstOrFail();
+
+        if ($plan->slug === SubscriptionPlanSlug::Trial || (int) $plan->price_cents <= 0) {
+            throw new \InvalidArgumentException(__('Seleccione um plano pago para o benefício de cortesia.'));
+        }
+
+        $meta = $subscription->gateway_meta ?? [];
+        if (! ($meta['complimentary_access'] ?? false)) {
+            $meta['complimentary_previous_status'] = $subscription->status->value;
+            $meta['complimentary_previous_plan_id'] = $subscription->subscription_plan_id;
+            $meta['complimentary_previous_ends_at'] = $subscription->ends_at?->toIso8601String();
+            $meta['complimentary_previous_trial_ends_at'] = $subscription->trial_ends_at?->toIso8601String();
+        }
+
+        $meta['complimentary_access'] = true;
+        $meta['complimentary_granted_at'] = now()->toIso8601String();
+        $meta['complimentary_granted_by'] = $admin->id;
+        $meta['complimentary_granted_by_name'] = $admin->name;
+        $meta['complimentary_ends_at'] = $validUntil?->toIso8601String();
+        if (filled($note)) {
+            $meta['complimentary_note'] = $note;
+        }
+
+        $subscription->update([
+            'subscription_plan_id' => $plan->id,
+            'status' => SubscriptionStatus::Active,
+            'starts_at' => $subscription->starts_at ?? now(),
+            'ends_at' => $validUntil,
+            'trial_ends_at' => null,
+            'cancelled_at' => null,
+            'gateway_meta' => $meta,
+        ]);
+
+        $subscription = $subscription->fresh(['plan', 'user']);
+
+        \App\Support\AuditTrail::entity('complimentary_grant', 'professional_subscriptions', $subscription, [
+            'plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+            'ends_at' => $validUntil?->toIso8601String(),
+            'note' => $note,
+        ], $admin);
+
+        return $subscription;
+    }
+
+    /**
+     * Remove o benefício de cortesia e restaura o estado anterior da assinatura, se conhecido.
+     */
+    public function revokeComplimentaryAccess(
+        User $admin,
+        ProfessionalSubscription $subscription,
+        ?string $note = null,
+    ): ProfessionalSubscription {
+        if (! $admin->isAdmin()) {
+            throw new \InvalidArgumentException(__('Apenas administradores podem revogar acesso por cortesia.'));
+        }
+
+        if (! filter_var($subscription->gateway_meta['complimentary_access'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            throw new \InvalidArgumentException(__('Esta assinatura não tem acesso por cortesia activo.'));
+        }
+
+        $meta = $subscription->gateway_meta ?? [];
+        $previousStatus = SubscriptionStatus::tryFrom((string) ($meta['complimentary_previous_status'] ?? ''))
+            ?? SubscriptionStatus::Expired;
+        $previousPlanId = isset($meta['complimentary_previous_plan_id'])
+            ? (int) $meta['complimentary_previous_plan_id']
+            : $subscription->subscription_plan_id;
+        $previousEndsAt = filled($meta['complimentary_previous_ends_at'] ?? null)
+            ? Carbon::parse((string) $meta['complimentary_previous_ends_at'])
+            : null;
+        $previousTrialEndsAt = filled($meta['complimentary_previous_trial_ends_at'] ?? null)
+            ? Carbon::parse((string) $meta['complimentary_previous_trial_ends_at'])
+            : null;
+
+        unset(
+            $meta['complimentary_access'],
+            $meta['complimentary_granted_at'],
+            $meta['complimentary_granted_by'],
+            $meta['complimentary_granted_by_name'],
+            $meta['complimentary_ends_at'],
+            $meta['complimentary_note'],
+            $meta['complimentary_previous_status'],
+            $meta['complimentary_previous_plan_id'],
+            $meta['complimentary_previous_ends_at'],
+            $meta['complimentary_previous_trial_ends_at'],
+        );
+
+        $meta['complimentary_revoked_at'] = now()->toIso8601String();
+        $meta['complimentary_revoked_by'] = $admin->id;
+        $meta['complimentary_revoked_by_name'] = $admin->name;
+        if (filled($note)) {
+            $meta['complimentary_revoke_note'] = $note;
+        }
+
+        // Se o estado anterior já não daria acesso, normaliza para expired.
+        if (
+            $previousStatus === SubscriptionStatus::Active
+            && $previousEndsAt !== null
+            && $previousEndsAt->isPast()
+        ) {
+            $previousStatus = SubscriptionStatus::Expired;
+        }
+
+        if (
+            $previousStatus === SubscriptionStatus::Trialing
+            && ($previousTrialEndsAt === null || $previousTrialEndsAt->isPast())
+        ) {
+            $previousStatus = SubscriptionStatus::Expired;
+            $previousTrialEndsAt = null;
+        }
+
+        $subscription->update([
+            'subscription_plan_id' => $previousPlanId,
+            'status' => $previousStatus,
+            'ends_at' => $previousEndsAt,
+            'trial_ends_at' => $previousStatus === SubscriptionStatus::Trialing ? $previousTrialEndsAt : null,
+            'gateway_meta' => $meta,
+        ]);
+
+        $subscription = $subscription->fresh(['plan', 'user']);
+
+        \App\Support\AuditTrail::entity('complimentary_revoke', 'professional_subscriptions', $subscription, [
+            'restored_status' => $previousStatus->value,
+            'note' => $note,
+        ], $admin);
+
+        return $subscription;
+    }
+
     private function manualActivationEndsAt(ProfessionalSubscription $subscription, BillingCycle $billingCycle): Carbon
     {
         if ($subscription->status === SubscriptionStatus::Active && $subscription->ends_at?->isFuture()) {
@@ -687,17 +847,35 @@ class SubscriptionService
     {
         $expired = 0;
 
-        $expired += ProfessionalSubscription::query()
+        $trialDue = ProfessionalSubscription::query()
             ->where('status', SubscriptionStatus::Trialing)
             ->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '<', now())
-            ->update(['status' => SubscriptionStatus::Expired]);
+            ->get();
 
-        $expired += ProfessionalSubscription::query()
+        foreach ($trialDue as $subscription) {
+            if ($subscription->hasComplimentaryAccess()) {
+                continue;
+            }
+
+            $subscription->update(['status' => SubscriptionStatus::Expired]);
+            $expired++;
+        }
+
+        $paidDue = ProfessionalSubscription::query()
             ->whereIn('status', [SubscriptionStatus::Active, SubscriptionStatus::PastDue])
             ->whereNotNull('ends_at')
             ->where('ends_at', '<', now())
-            ->update(['status' => SubscriptionStatus::Expired]);
+            ->get();
+
+        foreach ($paidDue as $subscription) {
+            if ($subscription->hasComplimentaryAccess()) {
+                continue;
+            }
+
+            $subscription->update(['status' => SubscriptionStatus::Expired]);
+            $expired++;
+        }
 
         return $expired;
     }
@@ -750,6 +928,15 @@ class SubscriptionService
                 'message' => __('Não há assinatura activa. Efectue o pagamento e aguarde a validação do administrador para recuperar o acesso.'),
                 'days_remaining' => null,
                 'subscription' => null,
+            ], $user);
+        }
+
+        if ($subscription->hasComplimentaryAccess()) {
+            return $this->finalizeBannerContext([
+                'level' => 'none',
+                'message' => null,
+                'days_remaining' => null,
+                'subscription' => $subscription,
             ], $user);
         }
 
@@ -905,6 +1092,10 @@ class SubscriptionService
 
     private function subscriptionIsCurrentlyValid(ProfessionalSubscription $subscription): bool
     {
+        if ($subscription->hasComplimentaryAccess()) {
+            return true;
+        }
+
         if (in_array($subscription->status, [SubscriptionStatus::Cancelled, SubscriptionStatus::Expired], true)) {
             return false;
         }

@@ -17,8 +17,7 @@
                 </div>
 
                 @php
-                    use App\Support\AvatarStyleOptions;
-                    $avatarStyle = AvatarStyleOptions::defaults();
+                    $avatarStyle = \App\Support\AvatarStyleOptions::defaults();
                 @endphp
 
                 <form

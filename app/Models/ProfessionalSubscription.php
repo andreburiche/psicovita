@@ -114,4 +114,36 @@ class ProfessionalSubscription extends Model
 
         return is_string($name) && $name !== '' ? $name : null;
     }
+
+    public function hasComplimentaryAccess(): bool
+    {
+        if (! filter_var($this->gateway_meta['complimentary_access'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return false;
+        }
+
+        $endsAt = $this->complimentaryEndsAt();
+
+        return $endsAt === null || now()->lte($endsAt);
+    }
+
+    public function complimentaryEndsAt(): ?\Illuminate\Support\Carbon
+    {
+        $raw = $this->gateway_meta['complimentary_ends_at'] ?? null;
+        if (! is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($raw);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function complimentaryGrantedByLabel(): ?string
+    {
+        $name = $this->gateway_meta['complimentary_granted_by_name'] ?? null;
+
+        return is_string($name) && $name !== '' ? $name : null;
+    }
 }

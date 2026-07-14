@@ -18,6 +18,10 @@
             </div>
         @endif
 
+        <div class="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-950 dark:border-teal-900/50 dark:bg-teal-950/30 dark:text-teal-100">
+            {{ __('Cortesia: use «Activar cortesia» para dar acesso completo à aplicação sem pagamento (benefício). «Desactivar cortesia» remove esse acesso e restaura o estado anterior da assinatura.') }}
+        </div>
+
         @php
             $totalSubscriptions = array_sum($summary);
             $activeFilter = (string) ($filters['status'] ?? '');
@@ -108,9 +112,7 @@
                         <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">{{ __('Pagamento') }}</th>
                         <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">{{ __('Validade') }}</th>
                         <th scope="col" class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">{{ __('Última renovação') }}</th>
-                        @if ($manualActivationEnabled)
-                            <th scope="col" class="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">{{ __('Ações') }}</th>
-                        @endif
+                        <th scope="col" class="w-[1%] whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -125,12 +127,20 @@
                                 <span @class(['inline-flex rounded-full px-2 py-0.5 text-xs font-semibold', $item->status->badgeClass()])>
                                     {{ $item->status->label() }}
                                 </span>
+                                @if ($item->hasComplimentaryAccess())
+                                    <span class="mt-1.5 inline-flex items-center gap-1 rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-800 ring-1 ring-inset ring-teal-600/15 dark:bg-teal-950/50 dark:text-teal-200 dark:ring-teal-400/20">
+                                        <x-ui.icon name="sparkles" class="h-3 w-3" />
+                                        {{ __('Cortesia') }}
+                                    </span>
+                                @endif
                                 @if ($item->cancelled_at)
                                     <p class="mt-1 text-xs text-slate-500">{{ __('Cancelada em :date', ['date' => $item->cancelled_at->format('d/m/Y')]) }}</p>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
-                                @if ($item->paymentMethodLabel() || $item->billingCycleLabel())
+                                @if ($item->hasComplimentaryAccess())
+                                    <p class="font-medium text-teal-700 dark:text-teal-300">{{ __('Sem pagamento (benefício)') }}</p>
+                                @elseif ($item->paymentMethodLabel() || $item->billingCycleLabel())
                                     <p>{{ collect([$item->paymentMethodLabel(), $item->billingCycleLabel()])->filter()->implode(' · ') }}</p>
                                 @else
                                     <span class="text-slate-400">—</span>
@@ -155,22 +165,25 @@
                                 @endif
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-400">
-                                {{ $item->expirationDate()?->format('d/m/Y') ?? '—' }}
+                                @if ($item->hasComplimentaryAccess() && $item->expirationDate() === null)
+                                    {{ __('Sem prazo') }}
+                                @else
+                                    {{ $item->expirationDate()?->format('d/m/Y') ?? '—' }}
+                                @endif
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-400">
                                 {{ $item->lastRenewalAt()?->format('d/m/Y H:i') ?? '—' }}
                             </td>
-                            @if ($manualActivationEnabled)
-                                <td class="px-4 py-3">
-                                    <div class="flex justify-end">
-                                        <x-admin.subscription-validate-action :subscription="$item" />
-                                    </div>
-                                </td>
-                            @endif
+                            <td class="whitespace-nowrap px-3 py-2.5 align-middle">
+                                <x-admin.subscription-row-actions
+                                    :subscription="$item"
+                                    :manual-activation-enabled="$manualActivationEnabled"
+                                />
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $manualActivationEnabled ? 7 : 6 }}" class="px-4 py-10 text-center text-slate-500">{{ __('Nenhuma assinatura encontrada.') }}</td>
+                            <td colspan="7" class="px-4 py-10 text-center text-slate-500">{{ __('Nenhuma assinatura encontrada.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

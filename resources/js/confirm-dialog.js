@@ -26,6 +26,15 @@ const VARIANTS = {
         hint: 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100',
         hintIcon: 'text-amber-600 dark:text-amber-400',
     },
+    benefit: {
+        header: 'bg-gradient-to-r from-teal-600 to-emerald-600',
+        eyebrow: 'text-teal-100',
+        subtitle: 'text-teal-50/95',
+        iconWrap: 'bg-white/15 ring-white/25',
+        confirmBtn: 'bg-teal-600 shadow-teal-600/25 hover:bg-teal-500',
+        hint: 'border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/50 dark:bg-teal-950/30 dark:text-teal-100',
+        hintIcon: 'text-teal-600 dark:text-teal-400',
+    },
 };
 
 const DEFAULT_LABELS = {

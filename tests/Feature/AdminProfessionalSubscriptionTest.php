@@ -146,4 +146,58 @@ class AdminProfessionalSubscriptionTest extends TestCase
 
         $this->assertSame(SubscriptionStatus::Expired, $professional->fresh()->professionalSubscription->status);
     }
+
+    public function test_admin_can_grant_and_revoke_complimentary_access_without_payment(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $professional = User::factory()->create(['role' => UserRole::Professional]);
+        $subscriptions = app(SubscriptionService::class);
+
+        $professional->professionalSubscription->update([
+            'status' => SubscriptionStatus::Expired,
+            'trial_ends_at' => now()->subDay(),
+            'ends_at' => null,
+        ]);
+
+        $this->assertFalse($subscriptions->hasClinicalAccess($professional));
+
+        $this->actingAs($admin)
+            ->post(route('admin.subscriptions.complimentary.grant', $professional->professionalSubscription))
+            ->assertRedirect(route('admin.subscriptions.index'))
+            ->assertSessionHas('status');
+
+        $granted = $professional->fresh()->professionalSubscription;
+        $this->assertTrue($granted->hasComplimentaryAccess());
+        $this->assertSame(SubscriptionStatus::Active, $granted->status);
+        $this->assertTrue($subscriptions->hasClinicalAccess($professional->fresh()));
+        $this->assertTrue($subscriptions->canUseFeature($professional->fresh(), 'use_ai'));
+        $this->assertTrue($subscriptions->canUseFeature($professional->fresh(), 'multi_user'));
+        $this->assertNull($subscriptions->patientLimit($professional->fresh()));
+        $this->assertFalse($granted->hasPaymentConfirmation());
+
+        $this->actingAs($admin)
+            ->get(route('admin.subscriptions.index'))
+            ->assertOk()
+            ->assertSee(__('Cortesia'), false)
+            ->assertSee(__('Revogar'), false);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.subscriptions.complimentary.revoke', $granted))
+            ->assertRedirect(route('admin.subscriptions.index'))
+            ->assertSessionHas('status');
+
+        $revoked = $professional->fresh()->professionalSubscription;
+        $this->assertFalse($revoked->hasComplimentaryAccess());
+        $this->assertSame(SubscriptionStatus::Expired, $revoked->status);
+        $this->assertFalse($subscriptions->hasClinicalAccess($professional->fresh()));
+    }
+
+    public function test_non_admin_cannot_grant_complimentary_access(): void
+    {
+        $professional = User::factory()->create(['role' => UserRole::Professional]);
+
+        $this->actingAs($professional)
+            ->post(route('admin.subscriptions.complimentary.grant', $professional->professionalSubscription))
+            ->assertForbidden();
+    }
 }

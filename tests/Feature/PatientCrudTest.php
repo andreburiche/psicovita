@@ -14,6 +14,16 @@ class PatientCrudTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_professional_can_open_create_patient_form(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('patients.create'))
+            ->assertOk()
+            ->assertSee(__('Novo paciente'), false);
+    }
+
     public function test_professional_can_create_and_list_patients(): void
     {
         $user = User::factory()->create();

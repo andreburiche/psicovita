@@ -91,6 +91,67 @@ class ProfessionalSubscriptionAdminController extends Controller
             ]));
     }
 
+    public function grantComplimentary(Request $request, ProfessionalSubscription $subscription): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'subscription_plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
+            'valid_until' => ['nullable', 'date', 'after:today'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $plan = isset($validated['subscription_plan_id'])
+            ? SubscriptionPlan::query()->findOrFail((int) $validated['subscription_plan_id'])
+            : null;
+        $validUntil = isset($validated['valid_until'])
+            ? \Illuminate\Support\Carbon::parse($validated['valid_until'])->endOfDay()
+            : null;
+
+        try {
+            $this->subscriptions->grantComplimentaryAccess(
+                $request->user(),
+                $subscription,
+                $plan,
+                $validUntil,
+                $validated['note'] ?? null,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['complimentary' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.subscriptions.index')
+            ->with('status', __('Acesso por cortesia activado para :name. O profissional pode usar a aplicação sem pagamento.', [
+                'name' => $subscription->user?->name ?? __('profissional'),
+            ]));
+    }
+
+    public function revokeComplimentary(Request $request, ProfessionalSubscription $subscription): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $this->subscriptions->revokeComplimentaryAccess(
+                $request->user(),
+                $subscription,
+                $validated['note'] ?? null,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['complimentary' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.subscriptions.index')
+            ->with('status', __('Acesso por cortesia desactivado para :name.', [
+                'name' => $subscription->user?->name ?? __('profissional'),
+            ]));
+    }
+
     private function ensureAdmin(Request $request): void
     {
         abort_unless($request->user()?->isAdmin(), 403);
