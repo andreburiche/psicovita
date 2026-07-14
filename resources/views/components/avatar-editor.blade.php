@@ -8,9 +8,7 @@
 ])
 
 @php
-    use App\Support\AvatarStyleOptions;
-
-    $resolvedStyle = AvatarStyleOptions::resolve($style);
+    $resolvedStyle = \App\Support\AvatarStyleOptions::resolve($style);
     $checkboxCard = 'flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white p-3 text-center text-xs font-medium text-slate-600 shadow-sm transition hover:border-violet-300/70 hover:bg-violet-50/40 has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50/80 has-[:checked]:text-violet-800 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-violet-500/40 dark:has-[:checked]:border-violet-500 dark:has-[:checked]:bg-violet-950/40 dark:has-[:checked]:text-violet-200';
     $shapeOptions = [
         'circle' => __('Circular'),
@@ -140,7 +138,7 @@
                     @foreach ($shapeOptions as $value => $label)
                         <label class="{{ $checkboxCard }}">
                             <input type="radio" name="avatar_shape" value="{{ $value }}" x-model="shape" class="sr-only" @checked(old('avatar_shape', $resolvedStyle['shape']) === $value) />
-                            <span class="flex h-8 w-8 items-center justify-center border-2 border-current {{ AvatarStyleOptions::shapeClass($value) }}" aria-hidden="true"></span>
+                            <span class="flex h-8 w-8 items-center justify-center border-2 border-current {{ \App\Support\AvatarStyleOptions::shapeClass($value) }}" aria-hidden="true"></span>
                             {{ $label }}
                         </label>
                     @endforeach

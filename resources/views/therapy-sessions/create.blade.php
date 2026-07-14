@@ -1,7 +1,4 @@
 @php
-    use App\Enums\SessionMode;
-    use App\Enums\TherapySessionStatus;
-    use App\Enums\TherapySessionType;
 @endphp
 
 <x-app-layout>
@@ -109,8 +106,8 @@
             </x-page-hero>
 
             <form method="post" action="{{ route('therapy-sessions.store') }}" class="space-y-5" @submit="validateBeforeSubmit($event)" x-data="{
-                type: @js(old('type', TherapySessionType::Online->value)),
-                sessionMode: @js(old('session_mode', SessionMode::Individual->value)),
+                type: @js(old('type', \App\Enums\TherapySessionType::Online->value)),
+                sessionMode: @js(old('session_mode', \App\Enums\SessionMode::Individual->value)),
                 primaryPatientId: @js((int) old('patient_id', $defaultPatientId ?? 0)),
                 observerSource: @js(old('observer_source', ($professionals ?? collect())->isNotEmpty() ? 'professional' : 'external')),
                 professionalsList: @js($professionalsForJs),
@@ -127,10 +124,10 @@
                 billingPatientId: @js((int) old('billing_patient_id', 0)),
                 patientNames: @js($patientsNameMap),
                 billingPatientOptions() {
-                    if (this.sessionMode === @js(SessionMode::Group->value)) {
+                    if (this.sessionMode === @js(\App\Enums\SessionMode::Group->value)) {
                         return this.groupPatientIds.map((id) => ({ id, name: this.patientNames[String(id)] || @js(__('Utente')) }));
                     }
-                    if (this.sessionMode === @js(SessionMode::Family->value)) {
+                    if (this.sessionMode === @js(\App\Enums\SessionMode::Family->value)) {
                         const ids = [...new Set([...this.familyPatientIds, this.primaryPatientId].filter((id) => Number(id) > 0))];
                         return ids.map((id) => ({ id, name: this.patientNames[String(id)] || @js(__('Utente')) }));
                     }
@@ -140,14 +137,14 @@
                     return [];
                 },
                 canConfigureBilling() {
-                    if (this.sessionMode === @js(SessionMode::WithObserver->value)) {
+                    if (this.sessionMode === @js(\App\Enums\SessionMode::WithObserver->value)) {
                         return false;
                     }
                     return this.billingPatientOptions().length > 0;
                 },
                 showBillingPatientSelect() {
-                    return this.sessionMode === @js(SessionMode::Group->value)
-                        || this.sessionMode === @js(SessionMode::Family->value);
+                    return this.sessionMode === @js(\App\Enums\SessionMode::Group->value)
+                        || this.sessionMode === @js(\App\Enums\SessionMode::Family->value);
                 },
                 syncBillingPatientId() {
                     const options = this.billingPatientOptions();
@@ -217,7 +214,7 @@
                     );
                 },
                 validateBeforeSubmit(e) {
-                    if (this.type !== @js(TherapySessionType::Online->value) || this.sessionMode !== @js(SessionMode::WithObserver->value)) {
+                    if (this.type !== @js(\App\Enums\TherapySessionType::Online->value) || this.sessionMode !== @js(\App\Enums\SessionMode::WithObserver->value)) {
                         return;
                     }
                     if (this.validObservers().length === 0) {
@@ -269,8 +266,8 @@
                 isGroupPatient(id) { return this.groupPatientIds.includes(id); },
                 init() {
                     this.$watch('type', (value) => {
-                        if (value !== @js(TherapySessionType::Online->value)) {
-                            this.sessionMode = @js(SessionMode::Individual->value);
+                        if (value !== @js(\App\Enums\TherapySessionType::Online->value)) {
+                            this.sessionMode = @js(\App\Enums\SessionMode::Individual->value);
                         }
                     });
                     this.$watch('groupPatientIds', () => this.syncBillingPatientId());
@@ -335,8 +332,8 @@
                             <div>
                                 <x-input-label for="status" :value="__('Status')" class="text-slate-700 dark:text-slate-200" />
                                 <select id="status" name="status" class="{{ $inputBase }}" required>
-                                    @foreach (TherapySessionStatus::cases() as $status)
-                                        <option value="{{ $status->value }}" @selected(old('status', TherapySessionStatus::Scheduled->value) === $status->value)>{{ $status->label() }}</option>
+                                    @foreach (\App\Enums\TherapySessionStatus::cases() as $status)
+                                        <option value="{{ $status->value }}" @selected(old('status', \App\Enums\TherapySessionStatus::Scheduled->value) === $status->value)>{{ $status->label() }}</option>
                                     @endforeach
                                 </select>
                                 <x-input-error class="mt-2" :messages="$errors->get('status')" />
@@ -344,26 +341,26 @@
                             <div>
                                 <x-input-label for="type" :value="__('Modalidade')" class="text-slate-700 dark:text-slate-200" />
                                 <select id="type" name="type" x-model="type" class="{{ $inputBase }}" required>
-                                    @foreach (TherapySessionType::cases() as $type)
-                                        <option value="{{ $type->value }}" @selected(old('type', TherapySessionType::Online->value) === $type->value)>{{ $type->label() }}</option>
+                                    @foreach (\App\Enums\TherapySessionType::cases() as $type)
+                                        <option value="{{ $type->value }}" @selected(old('type', \App\Enums\TherapySessionType::Online->value) === $type->value)>{{ $type->label() }}</option>
                                     @endforeach
                                 </select>
                                 <x-input-error class="mt-2" :messages="$errors->get('type')" />
                             </div>
                         </div>
 
-                        <div x-show="type === @js(TherapySessionType::Online->value)" x-cloak class="rounded-xl border border-violet-200/70 bg-violet-50/40 p-4 dark:border-violet-900/40 dark:bg-violet-950/20">
+                        <div x-show="type === @js(\App\Enums\TherapySessionType::Online->value)" x-cloak class="rounded-xl border border-violet-200/70 bg-violet-50/40 p-4 dark:border-violet-900/40 dark:bg-violet-950/20">
                             <x-input-label for="session_mode" :value="__('Formato da sessão')" class="text-slate-800 dark:text-slate-100" />
                             <select id="session_mode" name="session_mode" x-model="sessionMode" class="{{ $inputBase }}">
-                                @foreach ([SessionMode::Individual, SessionMode::WithObserver, SessionMode::Family, SessionMode::Group] as $mode)
-                                    <option value="{{ $mode->value }}" @selected(old('session_mode', SessionMode::Individual->value) === $mode->value)>{{ $mode->label() }}</option>
+                                @foreach ([\App\Enums\SessionMode::Individual, \App\Enums\SessionMode::WithObserver, \App\Enums\SessionMode::Family, \App\Enums\SessionMode::Group] as $mode)
+                                    <option value="{{ $mode->value }}" @selected(old('session_mode', \App\Enums\SessionMode::Individual->value) === $mode->value)>{{ $mode->label() }}</option>
                                 @endforeach
                             </select>
                             <p class="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">{{ __('Individual: um utente. Escuta: supervisores. Família: vários utentes/convidados. Grupo: 2 a 12 utentes com link próprio.') }}</p>
                             <x-input-error class="mt-2" :messages="$errors->get('session_mode')" />
                         </div>
 
-                        <div x-show="type !== @js(TherapySessionType::Online->value)" x-cloak class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
+                        <div x-show="type !== @js(\App\Enums\TherapySessionType::Online->value)" x-cloak class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
                             {{ __('Sessões presenciais usam o formato individual com um utente.') }}
                         </div>
                     </div>
@@ -371,7 +368,7 @@
 
                 {{-- 3. Participantes (dinâmico conforme formato) --}}
                 <section
-                    x-show="type !== @js(TherapySessionType::Online->value) || sessionMode === @js(SessionMode::Individual->value) || sessionMode === @js(SessionMode::Group->value) || sessionMode === @js(SessionMode::WithObserver->value) || sessionMode === @js(SessionMode::Family->value)"
+                    x-show="type !== @js(\App\Enums\TherapySessionType::Online->value) || sessionMode === @js(\App\Enums\SessionMode::Individual->value) || sessionMode === @js(\App\Enums\SessionMode::Group->value) || sessionMode === @js(\App\Enums\SessionMode::WithObserver->value) || sessionMode === @js(\App\Enums\SessionMode::Family->value)"
                     x-cloak
                     class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-100 dark:border-slate-700 dark:bg-slate-900/80 dark:ring-slate-700/60"
                 >
@@ -387,14 +384,14 @@
 
                     <div class="space-y-5 p-5">
                         {{-- Individual: utente --}}
-                        <div x-show="type !== @js(TherapySessionType::Online->value) || sessionMode === @js(SessionMode::Individual->value)" x-cloak>
+                        <div x-show="type !== @js(\App\Enums\TherapySessionType::Online->value) || sessionMode === @js(\App\Enums\SessionMode::Individual->value)" x-cloak>
                             <x-input-label for="patient_id" :value="__('Utente')" class="text-slate-700 dark:text-slate-200" />
                             <select
                                 id="patient_id"
                                 x-model.number="primaryPatientId"
                                 class="{{ $inputBase }}"
-                                :name="(type !== @js(TherapySessionType::Online->value) || sessionMode === @js(SessionMode::Individual->value)) ? 'patient_id' : null"
-                                :required="type !== @js(TherapySessionType::Online->value) || sessionMode === @js(SessionMode::Individual->value)"
+                                :name="(type !== @js(\App\Enums\TherapySessionType::Online->value) || sessionMode === @js(\App\Enums\SessionMode::Individual->value)) ? 'patient_id' : null"
+                                :required="type !== @js(\App\Enums\TherapySessionType::Online->value) || sessionMode === @js(\App\Enums\SessionMode::Individual->value)"
                             >
                                 <option value="">{{ __('Selecione…') }}</option>
                                 @foreach ($patients as $patient)
@@ -405,7 +402,7 @@
                         </div>
 
                         {{-- Grupo: membros --}}
-                        <div x-show="type === @js(TherapySessionType::Online->value) && sessionMode === @js(SessionMode::Group->value)" x-cloak class="space-y-3">
+                        <div x-show="type === @js(\App\Enums\TherapySessionType::Online->value) && sessionMode === @js(\App\Enums\SessionMode::Group->value)" x-cloak class="space-y-3">
                             <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ __('Membros do grupo') }}</p>
                             <p class="text-xs text-slate-500 dark:text-slate-400">{{ __('Selecione pelo menos 2 utentes. Cada um receberá um link pessoal.') }}</p>
                             <div class="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/50 p-2 dark:border-slate-600 dark:bg-slate-800/40">
@@ -431,7 +428,7 @@
                         </div>
 
                         {{-- Escuta: observadores --}}
-                        <div x-show="type === @js(TherapySessionType::Online->value) && sessionMode === @js(SessionMode::WithObserver->value)" x-cloak id="observer-section" class="space-y-4">
+                        <div x-show="type === @js(\App\Enums\TherapySessionType::Online->value) && sessionMode === @js(\App\Enums\SessionMode::WithObserver->value)" x-cloak id="observer-section" class="space-y-4">
                             <div class="rounded-lg border border-indigo-200/80 bg-indigo-50/60 px-4 py-3 text-xs text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-100">
                                 {{ __('Neste formato não é necessário selecionar utente — adicione um ou mais observadores abaixo.') }}
                             </div>
@@ -531,7 +528,7 @@
                         </div>
 
                         {{-- Família: utentes + externos --}}
-                        <div x-show="type === @js(TherapySessionType::Online->value) && sessionMode === @js(SessionMode::Family->value)" x-cloak class="space-y-4">
+                        <div x-show="type === @js(\App\Enums\TherapySessionType::Online->value) && sessionMode === @js(\App\Enums\SessionMode::Family->value)" x-cloak class="space-y-4">
                             <div class="rounded-xl border border-teal-200/70 bg-teal-50/40 p-4 dark:border-teal-900/40 dark:bg-teal-950/20">
                                 <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ __('Utentes do sistema') }}</p>
                                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Familiares ou parceiros já cadastrados.') }}</p>
@@ -663,7 +660,7 @@
                                         <option :value="option.id" x-text="option.name"></option>
                                     </template>
                                 </select>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="sessionMode === @js(SessionMode::Group->value)">
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="sessionMode === @js(\App\Enums\SessionMode::Group->value)">
                                     {{ __('Em grupo, apenas este utente recebe a cobrança automática. Os demais podem ser cobrados depois em Pagamentos.') }}
                                 </p>
                                 <x-input-error class="mt-2" :messages="$errors->get('billing_patient_id')" />

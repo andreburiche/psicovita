@@ -1,20 +1,18 @@
 @props(['patient', 'documentType'])
 
 @php
-    use App\Enums\PatientClinicalDocumentType;
-
     $tips = match ($documentType) {
-        PatientClinicalDocumentType::Atestado => [
+        \App\Enums\PatientClinicalDocumentType::Atestado => [
             __('Escolha comparecimento para consulta pontual ou afastamento para ausência prolongada.'),
             __('No afastamento, ajuste dias ou datas — o período é calculado automaticamente.'),
             __('Use «Pré-visualizar» para conferir o PDF antes de arquivar na ficha.'),
         ],
-        PatientClinicalDocumentType::Declaracao => [
+        \App\Enums\PatientClinicalDocumentType::Declaracao => [
             __('Use linguagem clara e objetiva, sem detalhes clínicos sensíveis desnecessários.'),
             __('O assunto aparece no cabeçalho do PDF quando preenchido.'),
             __('A logo da instituição pode ser configurada no seu perfil profissional.'),
         ],
-        PatientClinicalDocumentType::Receita => [
+        \App\Enums\PatientClinicalDocumentType::Receita => [
             __('Indique medicamento, dose e horário — um item por linha.'),
             __('Prescrição é de responsabilidade do profissional habilitado.'),
             __('Verifique normas do seu conselho antes de emitir.'),

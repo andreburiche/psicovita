@@ -6,9 +6,6 @@
 ])
 
 @php
-    use App\Enums\DocumentRequestStatus;
-    use App\Enums\InstitutionType;
-
     $dr = $documentRequest;
     $suggested = config('document_requests.suggested_documents', []);
     $selectedDocs = old('requested_documents', $dr->requested_documents ?? []);
@@ -45,7 +42,7 @@
             <div>
                 <x-input-label for="institution_type" :value="__('Tipo de instituição')" class="text-slate-700 dark:text-slate-200" />
                 <select id="institution_type" name="institution_type" class="{{ $selectBase }}" style="{{ $selectBg }}" required>
-                    @foreach (InstitutionType::options() as $value => $label)
+                    @foreach (\App\Enums\InstitutionType::options() as $value => $label)
                         <option value="{{ $value }}" @selected(old('institution_type', $dr->institution_type?->value) === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -55,8 +52,8 @@
             <div>
                 <x-input-label for="status" :value="__('Status')" class="text-slate-700 dark:text-slate-200" />
                 <select id="status" name="status" class="{{ $selectBase }}" style="{{ $selectBg }}" required>
-                    @foreach (DocumentRequestStatus::options() as $value => $label)
-                        <option value="{{ $value }}" @selected(old('status', $dr->status?->value ?? DocumentRequestStatus::Pending->value) === $value)>{{ $label }}</option>
+                    @foreach (\App\Enums\DocumentRequestStatus::options() as $value => $label)
+                        <option value="{{ $value }}" @selected(old('status', $dr->status?->value ?? \App\Enums\DocumentRequestStatus::Pending->value) === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
                 <x-input-error :messages="$errors->get('status')" class="mt-2" />

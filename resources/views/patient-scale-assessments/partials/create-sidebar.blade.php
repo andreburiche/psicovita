@@ -1,20 +1,18 @@
 @props(['patient', 'scaleType', 'definition', 'latestForScale' => null])
 
 @php
-    use App\Enums\ClinicalScaleType;
-
     $tips = match ($scaleType) {
-        ClinicalScaleType::Bai => [
+        \App\Enums\ClinicalScaleType::Bai => [
             __('Aplique em sessão ou peça ao paciente para responder com orientação.'),
             __('Considere sintomas da última semana, incluindo hoje.'),
             __('Pontuações elevadas indicam triagem — não substituem diagnóstico.'),
         ],
-        ClinicalScaleType::Bdi => [
+        \App\Enums\ClinicalScaleType::Bdi => [
             __('Foque nos últimos 14 dias, conforme orientação do BDI.'),
             __('Itens sobre humor, energia e sono ajudam a monitorar evolução.'),
             __('Compare resultados na aba Avaliações da ficha.'),
         ],
-        ClinicalScaleType::Stress => [
+        \App\Enums\ClinicalScaleType::Stress => [
             __('Avalie a frequência de cada situação nas últimas semanas.'),
             __('Útil para acompanhar sobrecarga em paralelo a outras escalas.'),
             __('Registre observações relevantes ao final do formulário.'),
@@ -22,8 +20,8 @@
     };
 
     $sidebarTone = match ($scaleType) {
-        ClinicalScaleType::Bdi => 'indigo',
-        ClinicalScaleType::Stress => 'teal',
+        \App\Enums\ClinicalScaleType::Bdi => 'indigo',
+        \App\Enums\ClinicalScaleType::Stress => 'teal',
         default => 'amber',
     };
 @endphp

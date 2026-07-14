@@ -1,14 +1,11 @@
 @php
-    use App\Enums\AiRequestStatus;
-    use App\Enums\AiRequestType;
-
     $statusStyles = match ($aiRequest->status) {
-        AiRequestStatus::Completed => [
+        \App\Enums\AiRequestStatus::Completed => [
             'badge' => 'bg-emerald-50 text-emerald-800 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-200 dark:ring-emerald-500/25',
             'icon' => 'check-circle',
             'tone' => 'emerald',
         ],
-        AiRequestStatus::Failed => [
+        \App\Enums\AiRequestStatus::Failed => [
             'badge' => 'bg-rose-50 text-rose-800 ring-rose-600/20 dark:bg-rose-950/50 dark:text-rose-200 dark:ring-rose-500/25',
             'icon' => 'alert-circle',
             'tone' => 'rose',
@@ -21,9 +18,9 @@
     };
 
     $typeIcon = match ($aiRequest->type) {
-        AiRequestType::Transcricao => 'sparkles',
-        AiRequestType::TextoAbordagem => 'document-text',
-        AiRequestType::RecomendacaoTerapeuta => 'users',
+        \App\Enums\AiRequestType::Transcricao => 'sparkles',
+        \App\Enums\AiRequestType::TextoAbordagem => 'document-text',
+        \App\Enums\AiRequestType::RecomendacaoTerapeuta => 'users',
     };
 
     $inputMeta = json_decode($aiRequest->input_text ?? '', true);
@@ -36,7 +33,7 @@
     ];
 
     $copyText = $aiRequest->output_text ?? '';
-    if ($aiRequest->type === AiRequestType::RecomendacaoTerapeuta && filled($copyText)) {
+    if ($aiRequest->type === \App\Enums\AiRequestType::RecomendacaoTerapeuta && filled($copyText)) {
         $decoded = json_decode($copyText, true);
         if (is_array($decoded)) {
             $copyText = '';
@@ -52,7 +49,7 @@
     }
 
     $hasOutput = filled($aiRequest->output_text);
-    $canSaveToRecord = $aiRequest->status === AiRequestStatus::Completed && $hasOutput && $aiRequest->type !== AiRequestType::RecomendacaoTerapeuta;
+    $canSaveToRecord = $aiRequest->status === \App\Enums\AiRequestStatus::Completed && $hasOutput && $aiRequest->type !== \App\Enums\AiRequestType::RecomendacaoTerapeuta;
 @endphp
 
 <x-app-layout>
@@ -254,7 +251,7 @@
 
             {{-- Conteúdo principal --}}
             <main class="lg:col-span-8">
-                @if ($aiRequest->status === AiRequestStatus::Failed)
+                @if ($aiRequest->status === \App\Enums\AiRequestStatus::Failed)
                     <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/50 px-6 py-16 text-center dark:border-rose-900/50 dark:bg-rose-950/20">
                         <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
                             <x-ui.icon name="alert-circle" class="h-8 w-8" />
@@ -286,7 +283,7 @@
                         </div>
 
                         <div class="p-5 sm:p-6">
-                            @if ($aiRequest->type === AiRequestType::RecomendacaoTerapeuta)
+                            @if ($aiRequest->type === \App\Enums\AiRequestType::RecomendacaoTerapeuta)
                                 @php
                                     $rows = json_decode($aiRequest->output_text, true);
                                 @endphp
@@ -304,7 +301,7 @@
                             @endif
                         </div>
 
-                        @if ($aiRequest->type === AiRequestType::TextoAbordagem && filled($aiRequest->input_text))
+                        @if ($aiRequest->type === \App\Enums\AiRequestType::TextoAbordagem && filled($aiRequest->input_text))
                             <details class="border-t border-slate-100 dark:border-slate-700">
                                 <summary class="cursor-pointer px-5 py-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50 sm:px-6">
                                     {{ __('Ver texto de entrada (resumo)') }}

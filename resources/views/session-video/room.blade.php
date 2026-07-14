@@ -1,12 +1,10 @@
 @extends('layouts.video-room')
 
 @php
-    use App\Enums\SessionMode;
-
-    $roomTitle = $session->patient?->name ?? match ($session->session_mode ?? SessionMode::Individual) {
-        SessionMode::WithObserver => __('Escuta / supervisão'),
-        SessionMode::Family => __('Casal / família'),
-        SessionMode::Group => __('Grupo terapêutico'),
+    $roomTitle = $session->patient?->name ?? match ($session->session_mode ?? \App\Enums\SessionMode::Individual) {
+        \App\Enums\SessionMode::WithObserver => __('Escuta / supervisão'),
+        \App\Enums\SessionMode::Family => __('Casal / família'),
+        \App\Enums\SessionMode::Group => __('Grupo terapêutico'),
         default => __('Sessão por vídeo'),
     };
 @endphp

@@ -1,7 +1,4 @@
 @php
-    use App\Enums\PaymentMethod;
-    use App\Enums\PaymentStatus;
-
     $inputBase = 'mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-500';
 @endphp
 
@@ -53,7 +50,7 @@
                     <div>
                         <x-input-label for="status" :value="__('Estado')" class="text-slate-700 dark:text-slate-200" />
                         <select id="status" name="status" class="{{ $inputBase }}" required>
-                            @foreach (PaymentStatus::cases() as $status)
+                            @foreach (\App\Enums\PaymentStatus::cases() as $status)
                                 <option value="{{ $status->value }}" @selected(old('status', $payment->status->value) === $status->value)>{{ $status->label() }}</option>
                             @endforeach
                         </select>
@@ -80,7 +77,7 @@
                     <x-input-label for="payment_method" :value="__('Forma de pagamento')" class="text-slate-700 dark:text-slate-200" />
                     <select id="payment_method" name="payment_method" class="{{ $inputBase }}">
                         <option value="">{{ __('Não informado') }}</option>
-                        @foreach (PaymentMethod::cases() as $method)
+                        @foreach (\App\Enums\PaymentMethod::cases() as $method)
                             <option value="{{ $method->value }}" @selected(old('payment_method', $payment->payment_method?->value) === $method->value)>{{ $method->label() }}</option>
                         @endforeach
                     </select>

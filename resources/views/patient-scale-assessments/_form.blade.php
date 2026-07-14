@@ -1,11 +1,9 @@
 @props(['scaleType', 'definition', 'questions', 'options', 'inputBase'])
 
 @php
-    use App\Enums\ClinicalScaleType;
-
     $sectionTone = match ($scaleType) {
-        ClinicalScaleType::Bdi => 'indigo',
-        ClinicalScaleType::Stress => 'teal',
+        \App\Enums\ClinicalScaleType::Bdi => 'indigo',
+        \App\Enums\ClinicalScaleType::Stress => 'teal',
         default => 'violet',
     };
 

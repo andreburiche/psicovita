@@ -1,7 +1,4 @@
 @php
-    use App\Enums\MessageChannel;
-    use Illuminate\Support\Str;
-
     $user = auth()->user();
     $search = $search ?? '';
 @endphp
@@ -90,7 +87,7 @@
                                 @endif
                             </div>
                             @if ($preview)
-                                <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{{ Str::limit($preview, 60) }}</p>
+                                <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{{ \Illuminate\Support\Str::limit($preview, 60) }}</p>
                             @endif
                         </div>
                         @if ($unread > 0)

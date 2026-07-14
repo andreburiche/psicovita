@@ -1,11 +1,9 @@
 @props(['patient', 'documentType', 'defaultBody', 'inputBase'])
 
 @php
-    use App\Enums\PatientClinicalDocumentType;
-
     $sectionTone = match ($documentType) {
-        PatientClinicalDocumentType::Declaracao => 'indigo',
-        PatientClinicalDocumentType::Receita => 'teal',
+        \App\Enums\PatientClinicalDocumentType::Declaracao => 'indigo',
+        \App\Enums\PatientClinicalDocumentType::Receita => 'teal',
         default => 'violet',
     };
 @endphp
@@ -34,7 +32,7 @@
         </div>
     </x-clinical-documents.partials.section-card>
 
-    @if ($documentType === PatientClinicalDocumentType::Atestado)
+    @if ($documentType === \App\Enums\PatientClinicalDocumentType::Atestado)
         <x-clinical-documents.partials.section-card
             :title="__('Tipo e período')"
             :description="__('Define se o atestado comprova comparecimento ou afastamento.')"
@@ -101,7 +99,7 @@
         </x-clinical-documents.partials.section-card>
     @endif
 
-    @if ($documentType === PatientClinicalDocumentType::Declaracao)
+    @if ($documentType === \App\Enums\PatientClinicalDocumentType::Declaracao)
         <x-clinical-documents.partials.section-card
             :title="__('Assunto')"
             :description="__('Opcional — aparece como título no PDF.')"
@@ -113,7 +111,7 @@
         </x-clinical-documents.partials.section-card>
     @endif
 
-    @if ($documentType === PatientClinicalDocumentType::Receita)
+    @if ($documentType === \App\Enums\PatientClinicalDocumentType::Receita)
         <x-clinical-documents.partials.section-card
             :title="__('Prescrição')"
             :description="__('Medicamentos, doses e orientações de uso.')"
@@ -148,7 +146,7 @@
             icon="document-text"
             :tone="$sectionTone"
         >
-            @if ($documentType === PatientClinicalDocumentType::Atestado)
+            @if ($documentType === \App\Enums\PatientClinicalDocumentType::Atestado)
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <p class="text-xs text-slate-500 dark:text-slate-400">{{ __('Preencha os campos acima e aplique o modelo, ou escreva manualmente.') }}</p>
                     <button

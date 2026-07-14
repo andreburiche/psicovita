@@ -1,10 +1,9 @@
 @props(['session', 'compact' => false])
 
 @php
-    use App\Enums\TherapySessionStatus;
 @endphp
 
-@if ($session->status === TherapySessionStatus::Scheduled)
+@if ($session->status === \App\Enums\TherapySessionStatus::Scheduled)
     <div
         {{ $attributes->merge(['class' => 'flex flex-wrap items-center justify-end gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100']) }}
         role="group"
@@ -13,7 +12,7 @@
         <form method="post" action="{{ route('therapy-sessions.update-status', $session) }}">
             @csrf
             @method('patch')
-            <input type="hidden" name="status" value="{{ TherapySessionStatus::Completed->value }}" />
+            <input type="hidden" name="status" value="{{ \App\Enums\TherapySessionStatus::Completed->value }}" />
             <button
                 type="submit"
                 title="{{ __('Marcar como concluída') }}"
@@ -29,7 +28,7 @@
         <form method="post" action="{{ route('therapy-sessions.update-status', $session) }}">
             @csrf
             @method('patch')
-            <input type="hidden" name="status" value="{{ TherapySessionStatus::Cancelled->value }}" />
+            <input type="hidden" name="status" value="{{ \App\Enums\TherapySessionStatus::Cancelled->value }}" />
             <button
                 type="submit"
                 title="{{ __('Marcar como cancelada') }}"

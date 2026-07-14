@@ -1,8 +1,6 @@
 @props(['session'])
 
 @php
-    use App\Enums\TherapySessionStatus;
-
     $timeStr = is_string($session->session_time)
         ? substr($session->session_time, 0, 5)
         : $session->session_time->format('H:i');
@@ -10,12 +8,12 @@
     $sessionLabel = $session->displayLabel();
 
     $chipClasses = match ($session->status) {
-        TherapySessionStatus::Completed => 'bg-emerald-50 text-emerald-900 ring-emerald-600/15 dark:bg-emerald-950/50 dark:text-emerald-100 dark:ring-emerald-500/30',
-        TherapySessionStatus::Cancelled => 'bg-rose-50 text-rose-800 line-through ring-rose-600/15 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-500/30',
+        \App\Enums\TherapySessionStatus::Completed => 'bg-emerald-50 text-emerald-900 ring-emerald-600/15 dark:bg-emerald-950/50 dark:text-emerald-100 dark:ring-emerald-500/30',
+        \App\Enums\TherapySessionStatus::Cancelled => 'bg-rose-50 text-rose-800 line-through ring-rose-600/15 dark:bg-rose-950/40 dark:text-rose-200 dark:ring-rose-500/30',
         default => 'bg-violet-50 text-violet-900 ring-violet-600/10 dark:bg-violet-950/50 dark:text-violet-100 dark:ring-violet-500/30',
     };
 
-    $isScheduled = $session->status === TherapySessionStatus::Scheduled;
+    $isScheduled = $session->status === \App\Enums\TherapySessionStatus::Scheduled;
 @endphp
 
 <li class="pointer-events-auto relative">
@@ -83,7 +81,7 @@
                             <form method="post" action="{{ route('therapy-sessions.update-status', $session) }}" class="contents">
                                 @csrf
                                 @method('patch')
-                                <input type="hidden" name="status" value="{{ TherapySessionStatus::Completed->value }}" />
+                                <input type="hidden" name="status" value="{{ \App\Enums\TherapySessionStatus::Completed->value }}" />
                                 <button
                                     type="submit"
                                     role="menuitem"
@@ -97,7 +95,7 @@
                             <form method="post" action="{{ route('therapy-sessions.update-status', $session) }}" class="contents">
                                 @csrf
                                 @method('patch')
-                                <input type="hidden" name="status" value="{{ TherapySessionStatus::Cancelled->value }}" />
+                                <input type="hidden" name="status" value="{{ \App\Enums\TherapySessionStatus::Cancelled->value }}" />
                                 <button
                                     type="submit"
                                     role="menuitem"

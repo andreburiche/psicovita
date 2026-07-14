@@ -1,19 +1,18 @@
 @props(['patient', 'scaleType'])
 
 @php
-    use App\Enums\ClinicalScaleType;
 @endphp
 
 <div class="space-y-2">
     <p class="px-1 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ __('Escala clínica') }}</p>
     <nav class="flex flex-col gap-2 sm:flex-row sm:flex-wrap" aria-label="{{ __('Escala clínica') }}">
-        @foreach (ClinicalScaleType::cases() as $type)
+        @foreach (\App\Enums\ClinicalScaleType::cases() as $type)
             @php
                 $isActive = $type === $scaleType;
                 $href = route('patients.scale-assessments.create', [$patient, $type->value]);
                 $activeRing = match ($type) {
-                    ClinicalScaleType::Bdi => 'ring-indigo-500/30 border-indigo-300 dark:border-indigo-600',
-                    ClinicalScaleType::Stress => 'ring-teal-500/30 border-teal-300 dark:border-teal-600',
+                    \App\Enums\ClinicalScaleType::Bdi => 'ring-indigo-500/30 border-indigo-300 dark:border-indigo-600',
+                    \App\Enums\ClinicalScaleType::Stress => 'ring-teal-500/30 border-teal-300 dark:border-teal-600',
                     default => 'ring-amber-500/30 border-amber-300 dark:border-amber-600',
                 };
             @endphp
@@ -28,9 +27,9 @@
             >
                 <span @class([
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition',
-                    'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md' => $isActive && $type === ClinicalScaleType::Bai,
-                    'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md' => $isActive && $type === ClinicalScaleType::Bdi,
-                    'bg-gradient-to-br from-teal-600 to-emerald-600 text-white shadow-md' => $isActive && $type === ClinicalScaleType::Stress,
+                    'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md' => $isActive && $type === \App\Enums\ClinicalScaleType::Bai,
+                    'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md' => $isActive && $type === \App\Enums\ClinicalScaleType::Bdi,
+                    'bg-gradient-to-br from-teal-600 to-emerald-600 text-white shadow-md' => $isActive && $type === \App\Enums\ClinicalScaleType::Stress,
                     'bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-violet-950 dark:group-hover:text-violet-400' => ! $isActive,
                 ])>
                     <x-ui.icon :name="$type->icon()" class="h-5 w-5" />

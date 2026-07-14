@@ -1,13 +1,9 @@
 @php
-    use App\Support\AvatarStyleOptions;
-    use App\Support\UiAccentOptions;
-    use App\Enums\UserProfessionalFunction;
-
     $inputBase = 'mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-500';
-    $functionOptions = UserProfessionalFunction::options();
+    $functionOptions = \App\Enums\UserProfessionalFunction::options();
     $style = $user->resolvedAvatarStyle();
     $uiAccent = old('ui_accent', $user->resolvedUiAccent());
-    $accentPresets = UiAccentOptions::presets();
+    $accentPresets = \App\Support\UiAccentOptions::presets();
 @endphp
 
 <section class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-100 dark:border-slate-700 dark:bg-slate-900/80 dark:ring-slate-700/60">

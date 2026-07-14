@@ -1,19 +1,18 @@
 @props(['patient', 'documentType'])
 
 @php
-    use App\Enums\PatientClinicalDocumentType;
 @endphp
 
 <div class="space-y-2">
     <p class="px-1 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ __('Tipo de documento') }}</p>
     <nav class="flex flex-col gap-2 sm:flex-row sm:flex-wrap" aria-label="{{ __('Tipo de documento') }}">
-        @foreach (PatientClinicalDocumentType::cases() as $type)
+        @foreach (\App\Enums\PatientClinicalDocumentType::cases() as $type)
             @php
                 $isActive = $type === $documentType;
                 $href = route('patients.clinical-documents.create', [$patient, $type->value]);
                 $activeRing = match ($type) {
-                    PatientClinicalDocumentType::Declaracao => 'ring-indigo-500/30 border-indigo-300 dark:border-indigo-600',
-                    PatientClinicalDocumentType::Receita => 'ring-teal-500/30 border-teal-300 dark:border-teal-600',
+                    \App\Enums\PatientClinicalDocumentType::Declaracao => 'ring-indigo-500/30 border-indigo-300 dark:border-indigo-600',
+                    \App\Enums\PatientClinicalDocumentType::Receita => 'ring-teal-500/30 border-teal-300 dark:border-teal-600',
                     default => 'ring-violet-500/30 border-violet-300 dark:border-violet-600',
                 };
             @endphp
@@ -28,9 +27,9 @@
             >
                 <span @class([
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition',
-                    'bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md' => $isActive && $type === PatientClinicalDocumentType::Atestado,
-                    'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md' => $isActive && $type === PatientClinicalDocumentType::Declaracao,
-                    'bg-gradient-to-br from-teal-600 to-emerald-600 text-white shadow-md' => $isActive && $type === PatientClinicalDocumentType::Receita,
+                    'bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md' => $isActive && $type === \App\Enums\PatientClinicalDocumentType::Atestado,
+                    'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md' => $isActive && $type === \App\Enums\PatientClinicalDocumentType::Declaracao,
+                    'bg-gradient-to-br from-teal-600 to-emerald-600 text-white shadow-md' => $isActive && $type === \App\Enums\PatientClinicalDocumentType::Receita,
                     'bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-violet-950 dark:group-hover:text-violet-400' => ! $isActive,
                 ])>
                     <x-ui.icon :name="$type->icon()" class="h-5 w-5" />

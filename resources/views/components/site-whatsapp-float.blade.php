@@ -1,11 +1,9 @@
 @props(['whatsapp' => []])
 
 @php
-    use App\Support\ExternalContactUrls;
-
     $enabled = (bool) ($whatsapp['enabled'] ?? false);
     $url = $enabled && filled($whatsapp['phone'] ?? null)
-        ? ExternalContactUrls::whatsapp($whatsapp['phone'], $whatsapp['message'] ?? null)
+        ? \App\Support\ExternalContactUrls::whatsapp($whatsapp['phone'], $whatsapp['message'] ?? null)
         : null;
 @endphp
 

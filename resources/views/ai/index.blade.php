@@ -1,7 +1,4 @@
 @php
-    use App\Enums\AiRequestStatus;
-    use App\Enums\AiRequestType;
-
     $modalities = [
         'online' => __('Online'),
         'presencial' => __('Presencial'),
@@ -24,7 +21,7 @@
 
     $highlightCopy = '';
     if (isset($highlightRequest) && $highlightRequest?->output_text) {
-        if ($highlightRequest->type === AiRequestType::RecomendacaoTerapeuta) {
+        if ($highlightRequest->type === \App\Enums\AiRequestType::RecomendacaoTerapeuta) {
             $decoded = json_decode($highlightRequest->output_text, true);
             if (is_array($decoded)) {
                 foreach ($decoded as $i => $row) {
@@ -88,7 +85,7 @@
             <div id="ultimo-resultado" class="scroll-mt-24">
                 <x-ai-card :title="__('Último resultado')" badge="{{ $highlightRequest->type->label() }}">
                     <x-ai-result-box>
-                        @if ($highlightRequest->type === AiRequestType::RecomendacaoTerapeuta)
+                        @if ($highlightRequest->type === \App\Enums\AiRequestType::RecomendacaoTerapeuta)
                             @php
                                 $rows = json_decode($highlightRequest->output_text, true);
                             @endphp
@@ -211,9 +208,9 @@
                                 @forelse ($recent as $r)
                                     @php
                                         $statusStyles = match ($r->status) {
-                                            AiRequestStatus::Completed => 'bg-emerald-50 text-emerald-800 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-200 dark:ring-emerald-500/25',
-                                            AiRequestStatus::Failed => 'bg-rose-50 text-rose-800 ring-rose-600/20 dark:bg-rose-950/50 dark:text-rose-200 dark:ring-rose-500/25',
-                                            AiRequestStatus::Pending => 'bg-amber-50 text-amber-900 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-100 dark:ring-amber-500/25',
+                                            \App\Enums\AiRequestStatus::Completed => 'bg-emerald-50 text-emerald-800 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-200 dark:ring-emerald-500/25',
+                                            \App\Enums\AiRequestStatus::Failed => 'bg-rose-50 text-rose-800 ring-rose-600/20 dark:bg-rose-950/50 dark:text-rose-200 dark:ring-rose-500/25',
+                                            \App\Enums\AiRequestStatus::Pending => 'bg-amber-50 text-amber-900 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-100 dark:ring-amber-500/25',
                                         };
                                     @endphp
                                     <tr class="transition-colors hover:bg-indigo-50/60 dark:hover:bg-indigo-950/25">

@@ -1,8 +1,6 @@
 @props(['message', 'user', 'conversation'])
 
 @php
-    use App\Enums\MessageChannel;
-
     $mine = $message->isFrom($user);
 @endphp
 
@@ -12,7 +10,7 @@
         'rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 text-white' => $mine,
         'rounded-bl-md border border-slate-200 bg-white text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100' => ! $mine,
     ])>
-        @if ($message->channel === MessageChannel::Whatsapp || ($mine && $message->external_id))
+        @if ($message->channel === \App\Enums\MessageChannel::Whatsapp || ($mine && $message->external_id))
             <span class="mb-1 inline-flex items-center gap-1 rounded-md bg-black/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">{{ __('WhatsApp') }}</span>
         @endif
         <p class="whitespace-pre-wrap break-words leading-relaxed">{{ $message->body }}</p>

@@ -5,8 +5,6 @@
 ])
 
 @php
-    use App\Support\AvatarStyleOptions;
-
     $resolved = $patient->resolvedAvatarStyle();
     $shape = $resolved['shape'];
     $ring = $resolved['ring'];
@@ -22,9 +20,9 @@
         default => 'h-12 w-12 text-sm',
     };
 
-    $shapeClass = AvatarStyleOptions::shapeClass($shape);
-    $ringClass = $showRing ? AvatarStyleOptions::ringClass($ring) : '';
-    $filterClass = AvatarStyleOptions::filterClass($filter);
+    $shapeClass = \App\Support\AvatarStyleOptions::shapeClass($shape);
+    $ringClass = $showRing ? \App\Support\AvatarStyleOptions::ringClass($ring) : '';
+    $filterClass = \App\Support\AvatarStyleOptions::filterClass($filter);
     $url = $patient->avatarUrl();
     $owner = $patient->avatarOwner();
     $cacheBust = ($owner instanceof \App\Models\User ? $owner->updated_at : $patient->updated_at)?->timestamp ?? time();

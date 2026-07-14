@@ -1,20 +1,17 @@
 @props(['patient'])
 
 @php
-    use App\Enums\TherapySessionStatus;
-    use App\Enums\TherapySessionType;
-
     $sessions = $patient->therapySessions;
     $sessionCount = $sessions->count();
 
-    $statusVariant = fn (TherapySessionStatus $status) => match ($status) {
-        TherapySessionStatus::Completed => 'success',
-        TherapySessionStatus::Scheduled => 'info',
-        TherapySessionStatus::Cancelled => 'danger',
+    $statusVariant = fn (\App\Enums\TherapySessionStatus $status) => match ($status) {
+        \App\Enums\TherapySessionStatus::Completed => 'success',
+        \App\Enums\TherapySessionStatus::Scheduled => 'info',
+        \App\Enums\TherapySessionStatus::Cancelled => 'danger',
     };
 
     $nextSession = $sessions
-        ->filter(fn ($s) => $s->status === TherapySessionStatus::Scheduled && $s->session_date->gte(now()->startOfDay()))
+        ->filter(fn ($s) => $s->status === \App\Enums\TherapySessionStatus::Scheduled && $s->session_date->gte(now()->startOfDay()))
         ->sortBy(fn ($s) => $s->session_date->format('Y-m-d').' '.$s->session_time)
         ->first();
 @endphp
@@ -103,7 +100,7 @@
                                             {{ $session->status->label() }}
                                         </x-ui.badge>
                                         <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                            @if ($session->type === TherapySessionType::Online)
+                                            @if ($session->type === \App\Enums\TherapySessionType::Online)
                                                 <x-ui.icon name="video" class="h-3.5 w-3.5" />
                                             @else
                                                 <x-ui.icon name="map-pin" class="h-3.5 w-3.5" />

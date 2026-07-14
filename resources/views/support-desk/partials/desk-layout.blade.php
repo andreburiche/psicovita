@@ -1,6 +1,4 @@
 @php
-    use Illuminate\Support\Str;
-
     $user = auth()->user();
     $activeConversation = $activeConversation ?? null;
     $messages = $messages ?? collect();

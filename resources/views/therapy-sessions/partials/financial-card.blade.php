@@ -1,6 +1,4 @@
 @php
-    use App\Enums\PaymentStatus;
-
     $billing = $billingOverview ?? [];
     $lines = $billing['lines'] ?? [];
     $hasLines = count($lines) > 0;

@@ -1,9 +1,6 @@
 @props(['session'])
 
 @php
-    use App\Enums\TherapySessionStatus;
-    use App\Enums\TherapySessionType;
-
     $billing = app(\App\Services\SessionBillingService::class)->overview($session);
     $lines = $billing['lines'] ?? [];
     $singlePayment = count($lines) === 1 ? ($lines[0]['payment'] ?? null) : null;
@@ -21,8 +18,8 @@
         $paymentActionLabel = __('Registar pagamento');
     }
 
-    $isOnline = $session->type === TherapySessionType::Online;
-    $isScheduled = $session->status === TherapySessionStatus::Scheduled;
+    $isOnline = $session->type === \App\Enums\TherapySessionType::Online;
+    $isScheduled = $session->status === \App\Enums\TherapySessionStatus::Scheduled;
 @endphp
 
 <x-dropdown align="right" width="56" contentClasses="py-1 rounded-xl bg-white shadow-lg ring-1 ring-slate-200/80 dark:bg-slate-800 dark:ring-slate-600 min-w-[12rem]">
@@ -53,7 +50,7 @@
             </span>
         </x-dropdown-link>
 
-        @if ($isOnline && $session->status !== TherapySessionStatus::Cancelled)
+        @if ($isOnline && $session->status !== \App\Enums\TherapySessionStatus::Cancelled)
             <x-dropdown-link :href="route('therapy-sessions.video.room', $session)">
                 {{ __('Videoconferência') }}
             </x-dropdown-link>
@@ -65,7 +62,7 @@
             <form method="post" action="{{ route('therapy-sessions.update-status', $session) }}">
                 @csrf
                 @method('patch')
-                <input type="hidden" name="status" value="{{ TherapySessionStatus::Completed->value }}" />
+                <input type="hidden" name="status" value="{{ \App\Enums\TherapySessionStatus::Completed->value }}" />
                 <button
                     type="submit"
                     class="flex w-full items-center gap-2 px-4 py-2 text-start text-sm text-emerald-700 transition hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
@@ -79,7 +76,7 @@
             <form method="post" action="{{ route('therapy-sessions.update-status', $session) }}">
                 @csrf
                 @method('patch')
-                <input type="hidden" name="status" value="{{ TherapySessionStatus::Cancelled->value }}" />
+                <input type="hidden" name="status" value="{{ \App\Enums\TherapySessionStatus::Cancelled->value }}" />
                 <button
                     type="submit"
                     class="flex w-full items-center gap-2 px-4 py-2 text-start text-sm text-rose-700 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"

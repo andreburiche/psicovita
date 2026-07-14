@@ -9,8 +9,6 @@
 ])
 
 @php
-    use App\Support\AvatarStyleOptions;
-
     $resolved = $user->resolvedAvatarStyle();
     $shape = $shape ?? $resolved['shape'];
     $ring = $ring ?? $resolved['ring'];
@@ -24,9 +22,9 @@
         default => 'h-12 w-12 text-sm',
     };
 
-    $shapeClass = AvatarStyleOptions::shapeClass($shape);
-    $ringClass = $showRing ? AvatarStyleOptions::ringClass($ring) : '';
-    $filterClass = AvatarStyleOptions::filterClass($filter);
+    $shapeClass = \App\Support\AvatarStyleOptions::shapeClass($shape);
+    $ringClass = $showRing ? \App\Support\AvatarStyleOptions::ringClass($ring) : '';
+    $filterClass = \App\Support\AvatarStyleOptions::filterClass($filter);
     $url = $user->avatarUrl();
     $cacheBust = $user->updated_at?->timestamp ?? time();
 @endphp

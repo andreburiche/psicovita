@@ -1,7 +1,5 @@
 @php
-    use App\Enums\UserProfessionalFunction;
-
-    $functionOptions = UserProfessionalFunction::options();
+    $functionOptions = \App\Enums\UserProfessionalFunction::options();
 @endphp
 
 <x-auth-split-layout

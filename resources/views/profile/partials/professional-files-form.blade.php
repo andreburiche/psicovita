@@ -1,6 +1,4 @@
 @php
-    use App\Enums\UserProfessionalFileCategory;
-
     $inputBase = 'mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-500';
     $selectBase = $inputBase . ' appearance-none bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat pr-10';
     $selectBg = "background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\");";
@@ -35,7 +33,7 @@
             <div>
                 <x-input-label for="file_category" :value="__('Tipo de documento')" class="text-slate-700 dark:text-slate-200" />
                 <select id="file_category" name="category" class="{{ $selectBase }}" style="{{ $selectBg }}" required>
-                    @foreach (UserProfessionalFileCategory::options() as $value => $label)
+                    @foreach (\App\Enums\UserProfessionalFileCategory::options() as $value => $label)
                         <option value="{{ $value }}" @selected(old('category') === $value)>{{ $label }}</option>
                     @endforeach
                 </select>

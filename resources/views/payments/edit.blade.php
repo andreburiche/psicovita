@@ -1,12 +1,10 @@
 @php
-    use App\Enums\PaymentStatus;
-
     $badgeVariant = match ($payment->status) {
-        PaymentStatus::Paid => 'success',
-        PaymentStatus::Pending => 'warning',
-        PaymentStatus::Overdue => 'danger',
-        PaymentStatus::Cancelled => 'neutral',
-        PaymentStatus::Refunded => 'neutral',
+        \App\Enums\PaymentStatus::Paid => 'success',
+        \App\Enums\PaymentStatus::Pending => 'warning',
+        \App\Enums\PaymentStatus::Overdue => 'danger',
+        \App\Enums\PaymentStatus::Cancelled => 'neutral',
+        \App\Enums\PaymentStatus::Refunded => 'neutral',
     };
 @endphp
 
@@ -109,14 +107,14 @@
                         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">{{ __('Alterar estado rapidamente') }}</h2>
                         <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Define o campo Estado no formulário. Confirme com Guardar.') }}</p>
                         <ul class="mt-4 space-y-2" role="list">
-                            @foreach (PaymentStatus::cases() as $status)
+                            @foreach (\App\Enums\PaymentStatus::cases() as $status)
                                 @php
                                     $quickVariant = match ($status) {
-                                        PaymentStatus::Paid => 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30',
-                                        PaymentStatus::Pending => 'hover:border-amber-300 hover:bg-amber-50 dark:hover:border-amber-800 dark:hover:bg-amber-950/30',
-                                        PaymentStatus::Overdue => 'hover:border-rose-300 hover:bg-rose-50 dark:hover:border-rose-800 dark:hover:bg-rose-950/30',
-                                        PaymentStatus::Cancelled => 'hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800',
-                                        PaymentStatus::Refunded => 'hover:border-violet-300 hover:bg-violet-50 dark:hover:border-violet-800 dark:hover:bg-violet-950/30',
+                                        \App\Enums\PaymentStatus::Paid => 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30',
+                                        \App\Enums\PaymentStatus::Pending => 'hover:border-amber-300 hover:bg-amber-50 dark:hover:border-amber-800 dark:hover:bg-amber-950/30',
+                                        \App\Enums\PaymentStatus::Overdue => 'hover:border-rose-300 hover:bg-rose-50 dark:hover:border-rose-800 dark:hover:bg-rose-950/30',
+                                        \App\Enums\PaymentStatus::Cancelled => 'hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800',
+                                        \App\Enums\PaymentStatus::Refunded => 'hover:border-violet-300 hover:bg-violet-50 dark:hover:border-violet-800 dark:hover:bg-violet-950/30',
                                     };
                                 @endphp
                                 <li>

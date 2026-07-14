@@ -1,6 +1,4 @@
 @php
-    use App\Support\AvatarStyleOptions;
-
     $p = $patient;
     $inputBase = 'mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-500';
     $cepTargets = [
@@ -9,7 +7,7 @@
         'city' => '#address_city',
         'state' => '#address_state',
     ];
-    $avatarStyle = $p ? $p->resolvedAvatarStyle() : AvatarStyleOptions::defaults();
+    $avatarStyle = $p ? $p->resolvedAvatarStyle() : \App\Support\AvatarStyleOptions::defaults();
     $avatarDisplayName = old('name', $p?->name ?? '');
     $avatarInitials = $p
         ? $p->avatarInitials()

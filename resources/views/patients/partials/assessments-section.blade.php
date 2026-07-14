@@ -7,20 +7,16 @@
 ])
 
 @php
-    use App\Enums\ClinicalScaleType;
-    use App\Enums\TherapeuticGoalStatus;
-    use App\Support\ClinicalScaleCatalog;
-
     $inputBase = 'mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm shadow-sm dark:border-slate-600 dark:bg-slate-900';
 @endphp
 
 <div class="space-y-6" data-test="patient-assessments-tab">
     {{-- Indicadores de risco --}}
     <div class="grid gap-4 sm:grid-cols-3">
-        @foreach (ClinicalScaleType::cases() as $scale)
+        @foreach (\App\Enums\ClinicalScaleType::cases() as $scale)
             @php
                 $latest = $scaleLatest[$scale->value] ?? null;
-                $tone = $latest ? ClinicalScaleCatalog::severityTone($latest->severity) : 'slate';
+                $tone = $latest ? \App\Support\ClinicalScaleCatalog::severityTone($latest->severity) : 'slate';
             @endphp
             <div @class([
                 'rounded-2xl border p-4 shadow-sm ring-1',
@@ -82,8 +78,8 @@
                         <div>
                             <x-input-label for="goal_status" :value="__('Estado')" />
                             <select id="goal_status" name="status" class="{{ $inputBase }}">
-                                @foreach (TherapeuticGoalStatus::options() as $value => $label)
-                                    <option value="{{ $value }}" @selected($value === TherapeuticGoalStatus::InProgress->value)>{{ $label }}</option>
+                                @foreach (\App\Enums\TherapeuticGoalStatus::options() as $value => $label)
+                                    <option value="{{ $value }}" @selected($value === \App\Enums\TherapeuticGoalStatus::InProgress->value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -143,7 +139,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-700">
             <x-ui.section-heading icon="clipboard-list" icon-tone="indigo" :title="__('Histórico de avaliações')" />
             <div class="flex flex-wrap gap-2">
-                @foreach (ClinicalScaleType::cases() as $scale)
+                @foreach (\App\Enums\ClinicalScaleType::cases() as $scale)
                     <a href="{{ route('patients.scale-assessments.create', [$patient, $scale->value]) }}" class="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-300">
                         <x-ui.icon :name="$scale->icon()" class="h-3.5 w-3.5" />
                         {{ $scale->label() }}
@@ -208,7 +204,7 @@
 
 @push('scripts')
     @php
-        $scaleTypesJson = collect(ClinicalScaleType::cases())->map(fn ($s) => [
+        $scaleTypesJson = collect(\App\Enums\ClinicalScaleType::cases())->map(fn ($s) => [
             'value' => $s->value,
             'label' => $s->label(),
             'color' => $s->chartColor(),

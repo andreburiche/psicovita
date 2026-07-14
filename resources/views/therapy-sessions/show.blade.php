@@ -1,11 +1,6 @@
 @php
-    use App\Enums\PaymentStatus;
-    use App\Enums\SessionMode;
-    use App\Enums\TherapySessionStatus;
-    use App\Enums\TherapySessionType;
-
     $patient = $session->patient;
-    $patientLabel = $patient?->name ?? ($session->session_mode === SessionMode::WithObserver
+    $patientLabel = $patient?->name ?? ($session->session_mode === \App\Enums\SessionMode::WithObserver
         ? __('Escuta / supervisão')
         : __('Sessão sem utente principal'));
     $timeLabel = is_string($session->session_time)
@@ -13,9 +8,9 @@
         : $session->session_time->format('H:i');
 
     $statusVariant = match ($session->status) {
-        TherapySessionStatus::Completed => 'success',
-        TherapySessionStatus::Scheduled => 'info',
-        TherapySessionStatus::Cancelled => 'danger',
+        \App\Enums\TherapySessionStatus::Completed => 'success',
+        \App\Enums\TherapySessionStatus::Scheduled => 'info',
+        \App\Enums\TherapySessionStatus::Cancelled => 'danger',
     };
 
     $sessionMoment = $session->session_date->copy();
@@ -28,16 +23,16 @@
 
     $isToday = $session->session_date->isToday();
     $isPast = $sessionMoment->isPast();
-    $isUpcoming = $session->status === TherapySessionStatus::Scheduled && ! $isPast;
+    $isUpcoming = $session->status === \App\Enums\TherapySessionStatus::Scheduled && ! $isPast;
 
     $heroSubtitle = match (true) {
-        $session->status === TherapySessionStatus::Cancelled => __('Sessão cancelada — detalhes mantidos para histórico.'),
+        $session->status === \App\Enums\TherapySessionStatus::Cancelled => __('Sessão cancelada — detalhes mantidos para histórico.'),
         $isUpcoming && $isToday => __('Hoje às :time — sessão agendada.', ['time' => $timeLabel]),
         $isUpcoming => __('Agendada para :date às :time.', [
             'date' => $session->session_date->translatedFormat('d M Y'),
             'time' => $timeLabel,
         ]),
-        $session->status === TherapySessionStatus::Completed => __('Sessão concluída em :date.', [
+        $session->status === \App\Enums\TherapySessionStatus::Completed => __('Sessão concluída em :date.', [
             'date' => $session->session_date->translatedFormat('d M Y'),
         ]),
         default => __('Registo da sessão com :patient.', ['patient' => $patientLabel]),
@@ -107,7 +102,7 @@
                             </div>
                             <p class="mt-3 text-lg font-bold text-white sm:text-xl">{{ $patientLabel }}</p>
                             <p class="mt-1 text-sm text-violet-100/80">
-                                {{ $session->type === TherapySessionType::Online ? __('Modalidade remota') : __('Atendimento presencial') }}
+                                {{ $session->type === \App\Enums\TherapySessionType::Online ? __('Modalidade remota') : __('Atendimento presencial') }}
                                 · {{ $sessionMoment->diffForHumans() }}
                             </p>
                         </div>
@@ -201,10 +196,10 @@
                                 <dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ __('Modalidade') }}</dt>
                                 <dd class="mt-1.5"><x-ui.badge variant="violet">{{ $session->type->label() }}</x-ui.badge></dd>
                             </div>
-                            @if ($session->type === TherapySessionType::Online && ($session->session_mode ?? SessionMode::Individual) !== SessionMode::Individual)
+                            @if ($session->type === \App\Enums\TherapySessionType::Online && ($session->session_mode ?? \App\Enums\SessionMode::Individual) !== \App\Enums\SessionMode::Individual)
                                 <div class="bg-white px-5 py-4 dark:bg-slate-900/80">
                                     <dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ __('Formato') }}</dt>
-                                    <dd class="mt-1.5"><x-ui.badge variant="info">{{ ($session->session_mode ?? SessionMode::Individual)->label() }}</x-ui.badge></dd>
+                                    <dd class="mt-1.5"><x-ui.badge variant="info">{{ ($session->session_mode ?? \App\Enums\SessionMode::Individual)->label() }}</x-ui.badge></dd>
                                 </div>
                             @endif
                             <div class="bg-white px-5 py-4 sm:col-span-2 dark:bg-slate-900/80">

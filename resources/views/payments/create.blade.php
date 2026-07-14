@@ -1,6 +1,4 @@
 @php
-    use App\Enums\PaymentMethod;
-    use App\Enums\PaymentStatus;
 @endphp
 
 <x-app-layout>

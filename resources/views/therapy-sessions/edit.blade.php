@@ -1,12 +1,8 @@
 @php
-    use App\Enums\SessionMode;
-    use App\Enums\TherapySessionStatus;
-    use App\Enums\TherapySessionType;
-
-    $patientLabel = $session->patient?->name ?? ($session->session_mode === SessionMode::WithObserver
+    $patientLabel = $session->patient?->name ?? ($session->session_mode === \App\Enums\SessionMode::WithObserver
         ? __('Escuta / supervisão')
         : __('Sessão sem utente principal'));
-    $requiresPatient = ($session->session_mode ?? SessionMode::Individual) === SessionMode::Individual;
+    $requiresPatient = ($session->session_mode ?? \App\Enums\SessionMode::Individual) === \App\Enums\SessionMode::Individual;
 @endphp
 
 <x-app-layout>
@@ -46,7 +42,7 @@
                     </div>
                 @else
                     <p class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
-                        {{ __('Formato :mode — o utente principal é definido pelos participantes da sessão, não por este formulário.', ['mode' => ($session->session_mode ?? SessionMode::Individual)->label()]) }}
+                        {{ __('Formato :mode — o utente principal é definido pelos participantes da sessão, não por este formulário.', ['mode' => ($session->session_mode ?? \App\Enums\SessionMode::Individual)->label()]) }}
                     </p>
                 @endif
 
@@ -71,7 +67,7 @@
                     <div>
                         <x-input-label for="status" :value="__('Status')" />
                         <select id="status" name="status" class="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 shadow-sm transition focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" required>
-                            @foreach (TherapySessionStatus::cases() as $status)
+                            @foreach (\App\Enums\TherapySessionStatus::cases() as $status)
                                 <option value="{{ $status->value }}" @selected(old('status', $session->status->value) === $status->value)>{{ $status->label() }}</option>
                             @endforeach
                         </select>
@@ -80,7 +76,7 @@
                     <div>
                         <x-input-label for="type" :value="__('Modalidade')" />
                         <select id="type" name="type" class="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 shadow-sm transition focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" required>
-                            @foreach (TherapySessionType::cases() as $type)
+                            @foreach (\App\Enums\TherapySessionType::cases() as $type)
                                 <option value="{{ $type->value }}" @selected(old('type', $session->type->value) === $type->value)>{{ $type->label() }}</option>
                             @endforeach
                         </select>

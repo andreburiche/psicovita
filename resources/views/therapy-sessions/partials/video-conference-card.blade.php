@@ -5,15 +5,11 @@
 ])
 
 @php
-    use App\Enums\TherapySessionStatus;
-    use App\Enums\TherapySessionType;
-    use App\Enums\VideoCallStatus;
-
-    $isCancelled = $session->status === TherapySessionStatus::Cancelled;
-    $isOnline = $session->type === TherapySessionType::Online;
+    $isCancelled = $session->status === \App\Enums\TherapySessionStatus::Cancelled;
+    $isOnline = $session->type === \App\Enums\TherapySessionType::Online;
     $roomUrl = route('therapy-sessions.video.room', $session);
     $reviewUrl = route('therapy-sessions.video.review', $session);
-    $isLive = $session->videoCall?->status === VideoCallStatus::Live;
+    $isLive = $session->videoCall?->status === \App\Enums\VideoCallStatus::Live;
 @endphp
 
 @if (! $isCancelled)
