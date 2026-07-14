@@ -5,7 +5,7 @@
 
 <ul
     @class([
-        'mt-4 divide-y divide-slate-100 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-slate-900/50',
+        'mt-4 min-w-0 divide-y divide-slate-100 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-slate-900/50',
         '[scrollbar-color:theme(colors.slate.300)_transparent] [scrollbar-width:thin] dark:[scrollbar-color:theme(colors.slate.600)_transparent]',
         '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600',
     ])

@@ -44,12 +44,12 @@
         </aside>
 
         <div
-            class="flex min-h-full flex-col transition-[padding] duration-300 ease-out"
+            class="flex min-h-full min-w-0 flex-col transition-[padding] duration-300 ease-out"
             :class="sidebarCollapsed && isDesktop ? 'lg:pl-[4.25rem]' : 'lg:pl-64'"
         >
             @include('layouts.partials.app-topbar')
 
-            <main id="main-content" class="relative flex-1 px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
+            <main id="main-content" class="relative min-w-0 flex-1 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
                 <x-flash-alert />
                 @if (session('warning'))
                     <x-flash-alert type="warning" :message="session('warning')" class="mb-6" />
