@@ -50,7 +50,7 @@
         @php
             $badgeVariant = match ($latestPayment->status) {
                 \App\Enums\PaymentStatus::Paid => 'success',
-                \App\Enums\PaymentStatus::Pending => 'warning',
+                \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::PendingConfirmation => 'warning',
                 \App\Enums\PaymentStatus::Overdue => 'danger',
                 \App\Enums\PaymentStatus::Cancelled => 'neutral',
                 default => 'neutral',

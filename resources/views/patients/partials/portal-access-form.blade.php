@@ -71,7 +71,7 @@
                     </span>
                 </label>
 
-                @if (($portalContext['whatsapp_available'] ?? false) && ($portalContext['whatsapp_has_phone'] ?? false))
+                @if ($portalContext['whatsapp_available'] ?? false)
                     <label class="{{ $checkboxCard }}">
                         <input
                             type="checkbox"
@@ -83,11 +83,14 @@
                         />
                         <span>
                             <span class="block font-semibold text-slate-900 dark:text-white">{{ __('Enviar convite por WhatsApp') }}</span>
-                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{{ __('Mensagem com o mesmo link de activação (sem senha em texto).') }}</span>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+                                {{ __('Mensagem com o mesmo link de activação (sem senha em texto).') }}
+                                @unless ($portalContext['whatsapp_has_phone'] ?? false)
+                                    {{ __('Preencha o telefone acima neste formulário para o envio.') }}
+                                @endunless
+                            </span>
                         </span>
                     </label>
-                @elseif (($portalContext['whatsapp_available'] ?? false) && ! ($portalContext['whatsapp_has_phone'] ?? false))
-                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ __('Para enviar por WhatsApp, adicione o telefone do paciente.') }}</p>
                 @endif
 
                 <label class="{{ $checkboxCard }}">

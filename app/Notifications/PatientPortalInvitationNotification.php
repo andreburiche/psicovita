@@ -5,15 +5,14 @@ namespace App\Notifications;
 use App\Models\PatientPortalInvitation;
 use App\Models\User;
 use App\Support\PatientPortalInvitationLinks;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PatientPortalInvitationNotification extends Notification implements ShouldQueue
+/**
+ * Envio síncrono: em hosting sem queue:work o convite ficava preso em `jobs`.
+ */
+class PatientPortalInvitationNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public PatientPortalInvitation $invitation,
         public User $professional,

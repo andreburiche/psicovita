@@ -94,7 +94,7 @@ class PatientController extends Controller
                     $sendWhatsApp,
                 );
                 $statusMessage = __('Paciente cadastrado. :detail', [
-                    'detail' => $this->portalProvisioning->inviteSentMessage($sendEmail, $sendWhatsApp, $patient),
+                    'detail' => $this->portalProvisioning->inviteSentMessage($sendEmail, $sendWhatsApp, $patient->fresh()),
                 ]);
             } catch (\InvalidArgumentException $e) {
                 return redirect()
@@ -295,7 +295,7 @@ class PatientController extends Controller
                     $sendWhatsApp,
                 );
                 $statusMessage = __('Paciente atualizado. :detail', [
-                    'detail' => $this->portalProvisioning->inviteSentMessage($sendEmail, $sendWhatsApp, $patient),
+                    'detail' => $this->portalProvisioning->inviteSentMessage($sendEmail, $sendWhatsApp, $patient->fresh()),
                 ]);
             } catch (\InvalidArgumentException $e) {
                 return redirect()

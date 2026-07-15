@@ -133,6 +133,33 @@ class PatientPortalProvisioningTest extends TestCase
             ->assertSessionHasErrors('portal_lgpd_acknowledged');
     }
 
+    public function test_sending_invite_email_does_not_expire_invitation_immediately(): void
+    {
+        Notification::fake();
+
+        $professional = User::factory()->create(['role' => UserRole::Professional]);
+
+        $this->actingAs($professional)->post(route('patients.store'), [
+            'name' => 'Expira Bug',
+            'email' => 'expira.bug@example.com',
+            'create_portal_access' => '1',
+            'send_portal_invite_email' => '1',
+            'portal_lgpd_acknowledged' => '1',
+        ])->assertRedirect();
+
+        $invitation = PatientPortalInvitation::query()->firstOrFail();
+
+        $this->assertTrue($invitation->isPending());
+        $this->assertNotNull($invitation->last_sent_at);
+        $this->assertTrue($invitation->expires_at->greaterThan(now()->addDay()));
+
+        $this->actingAs($professional)
+            ->get(route('patients.show', $invitation->patient))
+            ->assertOk()
+            ->assertSee(__('Convite pendente'), false)
+            ->assertDontSee(__('Conta criada — convite expirado'), false);
+    }
+
     public function test_resend_portal_invite_can_send_whatsapp(): void
     {
         Notification::fake();

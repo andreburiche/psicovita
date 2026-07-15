@@ -14,9 +14,10 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('invited_by')->constrained('users')->cascadeOnDelete();
             $table->string('token', 64)->unique();
-            $table->timestamp('expires_at');
-            $table->timestamp('accepted_at')->nullable();
-            $table->timestamp('last_sent_at')->nullable();
+            // DATETIME evita ON UPDATE CURRENT_TIMESTAMP do primeiro TIMESTAMP no MySQL
+            $table->dateTime('expires_at');
+            $table->dateTime('accepted_at')->nullable();
+            $table->dateTime('last_sent_at')->nullable();
             $table->timestamps();
 
             $table->index(['patient_id', 'accepted_at']);

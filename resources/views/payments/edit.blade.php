@@ -1,7 +1,7 @@
 @php
     $badgeVariant = match ($payment->status) {
         \App\Enums\PaymentStatus::Paid => 'success',
-        \App\Enums\PaymentStatus::Pending => 'warning',
+        \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::PendingConfirmation => 'warning',
         \App\Enums\PaymentStatus::Overdue => 'danger',
         \App\Enums\PaymentStatus::Cancelled => 'neutral',
         \App\Enums\PaymentStatus::Refunded => 'neutral',
@@ -111,7 +111,7 @@
                                 @php
                                     $quickVariant = match ($status) {
                                         \App\Enums\PaymentStatus::Paid => 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30',
-                                        \App\Enums\PaymentStatus::Pending => 'hover:border-amber-300 hover:bg-amber-50 dark:hover:border-amber-800 dark:hover:bg-amber-950/30',
+                                        \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::PendingConfirmation => 'hover:border-amber-300 hover:bg-amber-50 dark:hover:border-amber-800 dark:hover:bg-amber-950/30',
                                         \App\Enums\PaymentStatus::Overdue => 'hover:border-rose-300 hover:bg-rose-50 dark:hover:border-rose-800 dark:hover:bg-rose-950/30',
                                         \App\Enums\PaymentStatus::Cancelled => 'hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800',
                                         \App\Enums\PaymentStatus::Refunded => 'hover:border-violet-300 hover:bg-violet-50 dark:hover:border-violet-800 dark:hover:bg-violet-950/30',

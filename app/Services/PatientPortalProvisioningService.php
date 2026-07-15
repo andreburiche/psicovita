@@ -16,6 +16,18 @@ use Illuminate\Validation\ValidationException;
 
 class PatientPortalProvisioningService
 {
+    /**
+     * @var array{
+     *   email_wanted: bool,
+     *   whatsapp_wanted: bool,
+     *   email_sent: bool,
+     *   whatsapp_sent: bool,
+     *   email_error: ?string,
+     *   whatsapp_error: ?string
+     * }|null
+     */
+    private ?array $lastDispatch = null;
+
     public function __construct(
         private readonly WhatsAppTransactionalService $whatsapp,
     ) {}
@@ -125,13 +137,21 @@ class PatientPortalProvisioningService
 
         $invitation = $this->createOrRefreshInvitation($patient, $portalUser, $professional);
 
-        $this->dispatchInvitation($invitation, $patient, $professional, $sendEmail, $sendWhatsApp);
+        $this->lastDispatch = $this->dispatchInvitation(
+            $invitation,
+            $patient,
+            $professional,
+            $sendEmail,
+            $sendWhatsApp,
+        );
 
         AuditTrail::entity('portal_invite', 'patients', $patient, [
             'user_id' => $portalUser->id,
             'invitation_id' => $invitation->id,
             'send_email' => $sendEmail,
             'send_whatsapp' => $sendWhatsApp,
+            'email_sent' => $this->lastDispatch['email_sent'],
+            'whatsapp_sent' => $this->lastDispatch['whatsapp_sent'],
         ], $professional);
 
         return $invitation;
@@ -164,43 +184,89 @@ class PatientPortalProvisioningService
         );
 
         $invitation = $this->createOrRefreshInvitation($patient, $portalUser, $professional);
-        $this->dispatchInvitation($invitation, $patient, $professional, $sendEmail, $sendWhatsApp);
+        $this->lastDispatch = $this->dispatchInvitation(
+            $invitation,
+            $patient,
+            $professional,
+            $sendEmail,
+            $sendWhatsApp,
+        );
 
         AuditTrail::entity('portal_invite_resend', 'patients', $patient, [
             'invitation_id' => $invitation->id,
             'send_email' => $sendEmail,
             'send_whatsapp' => $sendWhatsApp,
+            'email_sent' => $this->lastDispatch['email_sent'],
+            'whatsapp_sent' => $this->lastDispatch['whatsapp_sent'],
         ], $professional);
 
         return $invitation;
     }
 
-    public function inviteSentMessage(bool $sendEmail, bool $sendWhatsApp, Patient $patient): string
+    public function inviteSentMessage(bool $sendEmail = true, bool $sendWhatsApp = false, ?Patient $patient = null): string
     {
-        $whatsappSent = $sendWhatsApp && $this->whatsapp->isAvailable() && $this->whatsapp->patientHasPhone($patient);
-        $emailSent = $sendEmail;
+        $dispatch = $this->lastDispatch ?? [
+            'email_wanted' => $sendEmail,
+            'whatsapp_wanted' => $sendWhatsApp,
+            'email_sent' => false,
+            'whatsapp_sent' => false,
+            'email_error' => null,
+            'whatsapp_error' => $sendWhatsApp
+                ? ($patient && ! $this->whatsapp->patientHasPhone($patient)
+                    ? __('telefone em falta na ficha')
+                    : __('não enviado'))
+                : null,
+        ];
 
-        if ($emailSent && $whatsappSent) {
+        $parts = [];
+
+        if ($dispatch['email_sent']) {
+            $parts[] = __('e-mail');
+        } elseif ($dispatch['email_wanted']) {
+            $parts[] = __('e-mail falhou (:reason)', [
+                'reason' => $dispatch['email_error'] ?: __('erro desconhecido'),
+            ]);
+        }
+
+        if ($dispatch['whatsapp_sent']) {
+            $parts[] = __('WhatsApp');
+        } elseif ($dispatch['whatsapp_wanted']) {
+            $parts[] = __('WhatsApp falhou (:reason)', [
+                'reason' => $dispatch['whatsapp_error'] ?: __('erro desconhecido'),
+            ]);
+        }
+
+        if ($dispatch['email_sent'] && $dispatch['whatsapp_sent']) {
             return __('Convite do portal enviado por e-mail e WhatsApp.');
         }
 
-        if ($emailSent) {
-            if ($sendWhatsApp && ! $this->whatsapp->patientHasPhone($patient)) {
-                return __('Convite enviado por e-mail. WhatsApp não enviado — adicione o telefone na ficha.');
-            }
-
-            if ($sendWhatsApp && ! $this->whatsapp->isAvailable()) {
-                return __('Convite enviado por e-mail. WhatsApp indisponível (integração não configurada).');
-            }
-
+        if ($dispatch['email_sent'] && ! $dispatch['whatsapp_wanted']) {
             return __('Convite do portal enviado por e-mail.');
         }
 
-        if ($whatsappSent) {
+        if ($dispatch['whatsapp_sent'] && ! $dispatch['email_wanted']) {
             return __('Convite do portal enviado por WhatsApp.');
         }
 
-        return __('Conta do portal criada. Nenhum convite foi enviado.');
+        if ($dispatch['email_sent'] && $dispatch['whatsapp_wanted'] && ! $dispatch['whatsapp_sent']) {
+            return __('Convite enviado por e-mail. WhatsApp não enviado — :reason.', [
+                'reason' => $dispatch['whatsapp_error'] ?: __('falha na integração'),
+            ]);
+        }
+
+        if ($dispatch['whatsapp_sent'] && $dispatch['email_wanted'] && ! $dispatch['email_sent']) {
+            return __('Convite enviado por WhatsApp. E-mail não enviado — :reason.', [
+                'reason' => $dispatch['email_error'] ?: __('falha no envio'),
+            ]);
+        }
+
+        if ($parts === []) {
+            return __('Conta do portal criada. Nenhum convite foi enviado.');
+        }
+
+        return __('Conta do portal criada. :detail', [
+            'detail' => implode('; ', $parts).'.',
+        ]);
     }
 
     public function findValidInvitation(string $token): ?PatientPortalInvitation
@@ -272,7 +338,7 @@ class PatientPortalProvisioningService
 
     private function createOrRefreshInvitation(Patient $patient, User $portalUser, User $professional): PatientPortalInvitation
     {
-        $expiresAt = now()->addDays((int) config('patient_portal.invitation_expires_days', 7));
+        $expiresAt = now()->addDays(max(1, (int) config('patient_portal.invitation_expires_days', 7)));
         $token = Str::lower(Str::random(48));
 
         $invitation = PatientPortalInvitation::query()
@@ -301,35 +367,77 @@ class PatientPortalProvisioningService
         return $invitation->fresh();
     }
 
-    private function sendInvitationEmail(PatientPortalInvitation $invitation, User $professional): void
-    {
-        $invitation->loadMissing(['patient', 'user']);
-
-        $email = $invitation->user->email;
-        if (! filled($email)) {
-            return;
-        }
-
-        Notification::route('mail', $email)
-            ->notify(new PatientPortalInvitationNotification($invitation, $professional));
-
-        $invitation->update(['last_sent_at' => now()]);
-    }
-
+    /**
+     * @return array{
+     *   email_wanted: bool,
+     *   whatsapp_wanted: bool,
+     *   email_sent: bool,
+     *   whatsapp_sent: bool,
+     *   email_error: ?string,
+     *   whatsapp_error: ?string
+     * }
+     */
     private function dispatchInvitation(
         PatientPortalInvitation $invitation,
         Patient $patient,
         User $professional,
         bool $sendEmail,
         bool $sendWhatsApp,
-    ): void {
+    ): array {
+        $result = [
+            'email_wanted' => $sendEmail,
+            'whatsapp_wanted' => $sendWhatsApp,
+            'email_sent' => false,
+            'whatsapp_sent' => false,
+            'email_error' => null,
+            'whatsapp_error' => null,
+        ];
+
         if ($sendEmail) {
-            $this->sendInvitationEmail($invitation, $professional);
+            try {
+                $this->sendInvitationEmail($invitation, $professional);
+                $result['email_sent'] = true;
+            } catch (\Throwable $e) {
+                report($e);
+                $result['email_error'] = $e->getMessage();
+            }
         }
 
         if ($sendWhatsApp) {
-            $this->whatsapp->sendPortalInvitation($patient, $invitation, $professional);
+            if (! $this->whatsapp->isAvailable()) {
+                $result['whatsapp_error'] = __('integração WhatsApp não configurada ou desligada');
+            } elseif (! $this->whatsapp->patientHasPhone($patient)) {
+                $result['whatsapp_error'] = __('adicione o telefone na ficha');
+            } else {
+                $messageId = $this->whatsapp->sendPortalInvitation($patient, $invitation, $professional);
+                if (filled($messageId)) {
+                    $result['whatsapp_sent'] = true;
+                } else {
+                    $result['whatsapp_error'] = __('servidor WhatsApp inacessível ou rejeitou o envio (verifique a Evolution/Meta)');
+                }
+            }
         }
+
+        return $result;
+    }
+
+    private function sendInvitationEmail(PatientPortalInvitation $invitation, User $professional): void
+    {
+        $invitation->loadMissing(['patient', 'user']);
+
+        $email = $invitation->user->email;
+        if (! filled($email)) {
+            throw new \RuntimeException(__('A conta do portal não tem e-mail.'));
+        }
+
+        Notification::route('mail', $email)
+            ->notifyNow(new PatientPortalInvitationNotification($invitation, $professional));
+
+        // Regrava expires_at para não depender de ON UPDATE CURRENT_TIMESTAMP em MySQL antigo.
+        $invitation->update([
+            'last_sent_at' => now(),
+            'expires_at' => $invitation->expires_at,
+        ]);
     }
 
     private function normalizedEmail(Patient $patient): string
