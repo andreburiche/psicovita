@@ -35,10 +35,6 @@
             icon="messages"
         />
 
-        @if (session('status'))
-            <x-flash-alert />
-        @endif
-
         <div class="flex flex-wrap items-center gap-3">
             @if ($pendingCount > 0)
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-100">
