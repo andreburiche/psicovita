@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // false: evita conflito com /storage/* do disk public (HostGator sem symlink).
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

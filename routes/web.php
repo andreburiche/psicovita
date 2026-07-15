@@ -33,6 +33,7 @@ use App\Http\Controllers\PatientTherapeuticGoalController;
 use App\Http\Controllers\PatientDocumentController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Media\AvatarMediaController;
+use App\Http\Controllers\Media\PublicStorageController;
 use App\Http\Controllers\Admin\DataSubjectRequestController as AdminDataSubjectRequestController;
 use App\Http\Controllers\Admin\ChatbotDashboardController;
 use App\Http\Controllers\Admin\ChatbotIntentAdminController;
@@ -62,6 +63,10 @@ Route::get('/media/avatars/users/{user}', [AvatarMediaController::class, 'user']
     ->name('media.user-avatar');
 Route::get('/media/avatars/patients/{patient}', [AvatarMediaController::class, 'patient'])
     ->name('media.patient-avatar');
+// Fallback: URLs /storage/... sem symlink public/storage (HostGator, etc.)
+Route::get('/storage/{path}', [PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('storage.public');
 Route::get('/sessao-video/{token}', [TherapySessionVideoCallController::class, 'guestJoin'])->name('session-video.guest');
 Route::post('/sessao-video/{token}/consentimento', [TherapySessionVideoCallController::class, 'guestConsent'])
     ->middleware('throttle:20,1')

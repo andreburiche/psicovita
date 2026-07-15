@@ -92,4 +92,16 @@ class ProfileAvatarTest extends TestCase
 
         $this->assertStringContainsString('/media/avatars/users/'.$user->id, (string) $user->fresh()->avatarUrl());
     }
+
+    public function test_avatar_is_served_via_storage_fallback_route(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $path = UploadedFile::fake()->image('avatar.jpg', 200, 200)->store('avatars/'.$user->id, 'public');
+        $user->forceFill(['avatar_path' => $path])->save();
+
+        $this->get('/storage/'.$path)
+            ->assertOk();
+    }
 }

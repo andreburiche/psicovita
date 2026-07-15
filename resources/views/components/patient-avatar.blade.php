@@ -24,8 +24,6 @@
     $ringClass = $showRing ? \App\Support\AvatarStyleOptions::ringClass($ring) : '';
     $filterClass = \App\Support\AvatarStyleOptions::filterClass($filter);
     $url = $patient->avatarUrl();
-    $owner = $patient->avatarOwner();
-    $cacheBust = ($owner instanceof \App\Models\User ? $owner->updated_at : $patient->updated_at)?->timestamp ?? time();
 @endphp
 
 <span
@@ -35,11 +33,13 @@
 >
     @if ($url)
         <img
-            src="{{ $url }}?v={{ $cacheBust }}"
+            src="{{ $url }}"
             alt=""
             class="h-full w-full object-cover {{ $filterClass }}"
             loading="lazy"
+            onerror="this.style.display='none'; this.nextElementSibling?.classList.remove('hidden');"
         />
+        <span class="hidden" aria-hidden="true">{{ $patient->avatarInitials() }}</span>
     @else
         <span aria-hidden="true">{{ $patient->avatarInitials() }}</span>
     @endif
