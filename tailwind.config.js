@@ -37,4 +37,18 @@ export default {
     },
 
     plugins: [forms],
+
+    safelist: [
+        'from-teal-600',
+        'to-emerald-600',
+        'bg-teal-600',
+        'hover:bg-teal-500',
+        'focus:ring-teal-500',
+        'border-teal-200',
+        'bg-teal-50',
+        'text-teal-900',
+        'text-teal-600',
+        'text-teal-700',
+        'shadow-teal-600/25',
+    ],
 };

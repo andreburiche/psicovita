@@ -1,6 +1,6 @@
 {{--
-  Classes Tailwind das variantes ficam neste Blade (não só no JS),
-  para o compilador as incluir no CSS. Evita cabeçalho sem fundo + texto branco.
+  Cores críticas usam :style (não só classes Tailwind dinâmicas),
+  para o diálogo continuar legível mesmo com CSS antigo na hospedagem.
 --}}
 <div
     x-data="confirmDialog()"
@@ -38,42 +38,18 @@
             class="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-900/20 ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-slate-700"
             x-on:click.stop
         >
-            <div
-                class="px-6 py-5 text-white"
-                :class="{
-                    'bg-gradient-to-r from-rose-600 to-orange-600': variant === 'danger',
-                    'bg-gradient-to-r from-amber-500 to-orange-500': variant === 'warning',
-                    'bg-gradient-to-r from-emerald-600 to-sky-600': variant === 'primary',
-                    'bg-gradient-to-r from-teal-600 to-emerald-600': variant === 'benefit',
-                }"
-            >
-                <div class="flex items-start gap-4">
-                    <span
-                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25"
-                    >
-                        <template x-if="variant === 'primary'">
-                            <x-ui.icon name="check-badge" class="h-6 w-6 text-white" />
-                        </template>
-                        <template x-if="variant === 'benefit'">
-                            <x-ui.icon name="sparkles" class="h-6 w-6 text-white" />
-                        </template>
-                        <template x-if="variant !== 'primary' && variant !== 'benefit'">
-                            <x-ui.icon name="alert-triangle" class="h-6 w-6 text-white" />
-                        </template>
-                    </span>
-                    <div class="min-w-0 pt-0.5">
-                        <p
-                            class="text-xs font-bold uppercase tracking-wider text-white/85"
-                            x-text="eyebrow || @js(__('Confirmação'))"
-                        ></p>
-                        <h2 class="mt-1 text-lg font-bold leading-snug text-white" x-text="title"></h2>
-                        <p
-                            class="mt-1 text-sm text-white/90"
-                            x-show="message"
-                            x-text="message"
-                        ></p>
-                    </div>
-                </div>
+            {{-- Cabeçalhos com classes estáticas por variante (Tailwind sempre inclui) --}}
+            <div class="px-6 py-5 text-white" x-show="variant === 'danger'" style="background: linear-gradient(to right, #e11d48, #ea580c);">
+                @include('components.partials.confirm-dialog-header')
+            </div>
+            <div class="px-6 py-5 text-white" x-show="variant === 'warning'" style="background: linear-gradient(to right, #f59e0b, #f97316);">
+                @include('components.partials.confirm-dialog-header')
+            </div>
+            <div class="px-6 py-5 text-white" x-show="variant === 'primary'" style="background: linear-gradient(to right, #059669, #0284c7);">
+                @include('components.partials.confirm-dialog-header')
+            </div>
+            <div class="px-6 py-5 text-white" x-show="variant === 'benefit'" style="background: linear-gradient(to right, #0d9488, #059669);">
+                @include('components.partials.confirm-dialog-header')
             </div>
 
             <div class="space-y-4 bg-white p-6 dark:bg-slate-900">
@@ -90,23 +66,27 @@
                 </dl>
 
                 <div
-                    x-show="hint"
-                    class="flex gap-3 rounded-xl border px-4 py-3 text-sm"
-                    :class="{
-                        'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-100': variant === 'danger',
-                        'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100': variant === 'warning' || variant === 'primary',
-                        'border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-900/50 dark:bg-teal-950/30 dark:text-teal-100': variant === 'benefit',
-                    }"
+                    x-show="hint && variant === 'danger'"
+                    class="flex gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-100"
+                    style="border-color: #fecdd3; background: #fff1f2; color: #881337;"
                 >
-                    <x-ui.icon
-                        name="info"
-                        class="mt-0.5 h-5 w-5 shrink-0"
-                        x-bind:class="{
-                            'text-rose-600 dark:text-rose-400': variant === 'danger',
-                            'text-amber-600 dark:text-amber-400': variant === 'warning' || variant === 'primary',
-                            'text-teal-600 dark:text-teal-400': variant === 'benefit',
-                        }"
-                    />
+                    <x-ui.icon name="info" class="mt-0.5 h-5 w-5 shrink-0 text-rose-600" style="color: #e11d48;" />
+                    <p x-text="hint"></p>
+                </div>
+                <div
+                    x-show="hint && (variant === 'warning' || variant === 'primary')"
+                    class="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100"
+                    style="border-color: #fde68a; background: #fffbeb; color: #78350f;"
+                >
+                    <x-ui.icon name="info" class="mt-0.5 h-5 w-5 shrink-0 text-amber-600" style="color: #d97706;" />
+                    <p x-text="hint"></p>
+                </div>
+                <div
+                    x-show="hint && variant === 'benefit'"
+                    class="flex gap-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900 dark:border-teal-900/50 dark:bg-teal-950/30 dark:text-teal-100"
+                    style="border-color: #99f6e4; background: #f0fdfa; color: #134e4a;"
+                >
+                    <x-ui.icon name="info" class="mt-0.5 h-5 w-5 shrink-0 text-teal-600" style="color: #0d9488;" />
                     <p x-text="hint"></p>
                 </div>
 
@@ -121,11 +101,9 @@
                         type="button"
                         x-on:click="submitConfirm()"
                         class="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-md transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
-                        :class="{
-                            'bg-rose-600 shadow-rose-600/25 hover:bg-rose-500 focus:ring-rose-500': variant === 'danger',
-                            'bg-amber-600 shadow-amber-600/25 hover:bg-amber-500 focus:ring-amber-500': variant === 'warning',
-                            'bg-emerald-600 shadow-emerald-600/25 hover:bg-emerald-500 focus:ring-emerald-500': variant === 'primary',
-                            'bg-teal-600 shadow-teal-600/25 hover:bg-teal-500 focus:ring-teal-500': variant === 'benefit',
+                        :style="{
+                            backgroundColor: ({ danger: '#e11d48', warning: '#d97706', primary: '#059669', benefit: '#0d9488' }[variant] || '#e11d48'),
+                            color: '#ffffff',
                         }"
                     >
                         <x-ui.icon name="check" class="h-4 w-4 text-white" />

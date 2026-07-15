@@ -79,7 +79,9 @@ export function createConfirmDialogData() {
             this.eyebrow = payload.eyebrow ?? '';
             this.confirmLabel = payload.confirmLabel ?? DEFAULT_LABELS.confirm;
             this.cancelLabel = payload.cancelLabel ?? DEFAULT_LABELS.cancel;
-            this.variant = VARIANTS[payload.variant] ? payload.variant : 'danger';
+            this.variant = ['danger', 'warning', 'primary', 'benefit'].includes(payload.variant)
+                ? payload.variant
+                : 'danger';
             this.details = Array.isArray(payload.details) ? payload.details.filter((item) => item?.value) : [];
             this.formId = payload.formId ?? null;
             this.lastFocus = document.activeElement;
@@ -107,6 +109,22 @@ export function createConfirmDialogData() {
             }
 
             this.closeDialog();
+        },
+
+        confirmButtonStyle() {
+            const colors = {
+                danger: '#e11d48',
+                warning: '#d97706',
+                primary: '#059669',
+                benefit: '#0d9488',
+            };
+            const bg = colors[this.variant] ?? colors.danger;
+
+            return {
+                backgroundColor: bg,
+                color: '#ffffff',
+                boxShadow: `0 4px 14px ${bg}40`,
+            };
         },
 
         dialogStyles() {
