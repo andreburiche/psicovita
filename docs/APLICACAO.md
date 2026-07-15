@@ -1,7 +1,7 @@
 # PsiConecta — Documentação da Aplicação
 
 > Fluxos, funcionalidades, regras de negócio, modelo de dados e políticas de acesso.  
-> Última atualização: junho de 2026.  
+> Última atualização: julho de 2026.  
 > **Índice completo:** [README.md](README.md) · [REQUISITOS.md](REQUISITOS.md) · [INSTALACAO.md](INSTALACAO.md) · [CONFIGURACAO.md](CONFIGURACAO.md) · [COMUNICACAO.md](COMUNICACAO.md)
 
 ---
@@ -250,8 +250,8 @@ Funcionalidades equivalentes à agenda, mais:
 
 | Campo | Valores |
 |-------|---------|
-| `status` | `pending`, `paid`, `overdue`, `cancelled`, `refunded` |
-| `payment_method` | `pix`, `card` (opcional — paciente escolhe no portal se vazio) |
+| `status` | `pending`, `pending_confirmation`, `paid`, `overdue`, `cancelled`, `refunded` |
+| `payment_method` | `pix`, `card` (opcional — paciente escolhe no portal se vazio; no PIX manual fica `pix`) |
 | `gateway` | `manual`, `asaas` |
 | `therapy_session_id` | Opcional |
 
@@ -259,9 +259,11 @@ Funcionalidades equivalentes à agenda, mais:
 - Paginação configurável
 - Link na ficha do paciente (aba Financeiro + resumo)
 - **Cobrança automática:** ao criar sessão (`TherapySessionObserver` → `PaymentService::createFromSession`) se `PAYMENT_AUTO_CHARGE_ON_SESSION=true`
-- **Split:** percentual plataforma (`PAYMENT_PLATFORM_FEE_PERCENT`); repasse ao profissional via Asaas quando `ASAAS_SPLIT_ENABLED` e `users.asaas_wallet_id` definido
+- **Split:** percentual plataforma (`PAYMENT_PLATFORM_FEE_PERCENT`); repasse ao **dono da prática** (`clinicalPracticeId` / `clinic_owner_id === null`) via Asaas quando `ASAAS_SPLIT_ENABLED` e `users.asaas_wallet_id` do dono definido — **não** usa a wallet do membro da equipa
+- **Confirmação manual:** em `pending_confirmation`, o dono (ou quem pode actualizar o pagamento) confirma com `POST /payments/{id}/confirm-manual` → `paid`
+- Preferência de recebimento e PIX manual configuram-se no **perfil do dono** (ver [§21 — Modo híbrido](#modo-hibrido-asaas-pix-manual))
 
-**Serviço:** `PaymentService`
+**Serviços:** `PaymentService`, `PaymentSettingsService`
 
 ### 4.9 Relatórios (`/relatorios`)
 
@@ -365,11 +367,14 @@ Funcionalidades:
 | Rota | Acção |
 |------|-------|
 | `GET .../pagamentos` | Lista de cobranças do paciente |
-| `GET .../pagamentos/{id}` | Detalhe + QR PIX ou link cartão |
-| `POST .../pagamentos/{id}/pagar` | Inicia cobrança no Asaas |
+| `GET .../pagamentos/{id}` | Detalhe + QR PIX (Asaas ou manual) ou link cartão |
+| `POST .../pagamentos/{id}/pagar` | Inicia checkout (`PaymentService::initiatePortalPayment`) — Asaas **ou** PIX manual |
+| `POST .../pagamentos/{id}/ja-paguei` | PIX manual: paciente declara pagamento → `pending_confirmation` |
 
-- Se `payment_method` estiver vazio, o paciente **escolhe PIX ou cartão** antes de pagar
-- Webhook `POST /webhooks/asaas` confirma pagamento (`PaymentService::confirmFromWebhook`)
+- Se o checkout for **Asaas** e `payment_method` estiver vazio, o paciente **escolhe PIX ou cartão** antes de pagar
+- Se o checkout for **PIX manual**, mostra chave/link + QR do profissional; cartão Asaas **não** está disponível
+- Webhook `POST /webhooks/asaas` confirma pagamento Asaas (`PaymentService::confirmFromWebhook`)
+- PIX manual **não** usa webhook — confirmação humana pelo profissional (ver [§21](#modo-hibrido-asaas-pix-manual))
 
 ---
 
@@ -548,8 +553,19 @@ scheduled → completed | cancelled
 ### PaymentStatus
 
 ```
-pending → paid | overdue | cancelled
+pending ──────────────────────► paid | overdue | cancelled | refunded
+   │
+   └─(PIX manual: «Já paguei»)─► pending_confirmation ─(dono confirma)─► paid
+                                                              └→ cancelled | overdue (ajuste manual)
 ```
+
+| Estado | Significado |
+|--------|-------------|
+| `pending` | Cobrança em aberto (Asaas ainda não pago, ou PIX manual ainda não declarado) |
+| `pending_confirmation` | Paciente reportou PIX manual; aguarda confirmação do profissional |
+| `paid` | Confirmado (webhook Asaas ou confirmação manual) |
+| `overdue` | Em atraso (webhook Asaas ou marcação manual) |
+| `cancelled` / `refunded` | Cancelado / reembolsado |
 
 ### DocumentRequestStatus
 
@@ -607,7 +623,9 @@ processing → completed | failed
 | DocumentRequestAccessLogService | `app/Services/DocumentRequestAccessLogService.php` | Logs acesso docs |
 | PatientDocumentService | `app/Services/PatientDocumentService.php` | Docs paciente |
 | PatientDataExportPdfService | `app/Services/PatientDataExportPdfService.php` | Export LGPD PDF |
-| PaymentService | `app/Services/PaymentService.php` | Cobranças clínicas, portal paciente, split |
+| PaymentService | `app/Services/PaymentService.php` | Cobranças clínicas, portal (Asaas + PIX manual), split, confirmação manual |
+| PaymentSettingsService | `app/Services/PaymentSettingsService.php` | Resolve `auto` / `asaas` / `manual` para o dono da prática |
+| ProfessionalPixSettingsService | `app/Services/ProfessionalPixSettingsService.php` | Grava preferência + chave/QR PIX no perfil do dono |
 | SubscriptionService | `app/Services/SubscriptionService.php` | Trial, checkout, cancelamento, webhook |
 | AsaasGatewayService | `app/Services/Gateways/AsaasGatewayService.php` | Cliente, cobrança, subscrição, PIX |
 | UserAvatarService | `app/Services/UserAvatarService.php` | Avatars |
@@ -633,7 +651,8 @@ processing → completed | failed
 1. Registo (se e-mail na ficha) ou convite
 2. Verificação de e-mail
 3. Portal → mensagem ao terapeuta
-4. Privacidade → pedido LGPD ou exportação de dados
+4. Pagamentos → Asaas (PIX/cartão) ou PIX manual do profissional; se manual, «Já paguei» e aguarda confirmação
+5. Privacidade → pedido LGPD ou exportação de dados
 
 ### Solicitação documental
 
@@ -720,6 +739,7 @@ Eventos tratados:
 | `/therapy-sessions/export/excel` | `therapy-sessions.export.excel` |
 | `/clinical-records` | `clinical-records.*` |
 | `/payments` | `payments.*` |
+| `POST /payments/{payment}/confirm-manual` | `payments.confirm-manual` (PIX manual → `paid`) |
 | `/anamnesis-forms` | `anamnesis-forms.*` |
 | `/schedule-blocks` | `schedule-blocks.*` |
 | `/relatorios` | `reports.index` |
@@ -734,12 +754,14 @@ Eventos tratados:
 | `/notificacoes/{id}/abrir` | `notifications.open` (marca como lida + redireciona) |
 | `/profile` | `profile.*` |
 | `POST /profile/asaas-wallet` | `profile.asaas-wallet.provision` (Connect / carteira split) |
+| `POST /profile/payment-settings` | `profile.payment-settings.update` (preferência + PIX manual; só dono) |
 | `/assinatura` | `subscription.checkout` |
 | `POST /assinatura` | `subscription.checkout.store` |
 | `DELETE /assinatura` | `subscription.checkout.cancel` |
 | `/area-paciente` | `patient.home` |
 | `/area-paciente/privacidade` | `patient.lgpd.*` |
 | `/area-paciente/pagamentos` | `patient.payments.*` |
+| `POST .../pagamentos/{id}/ja-paguei` | `patient.payments.already-paid` |
 
 ### Webhooks (sem auth de sessão)
 
@@ -760,9 +782,10 @@ Eventos tratados:
 
 ## 19. Limitações actuais
 
-- Split Asaas exige **carteira do profissional** (`asaas_wallet_id`): Connect no perfil ou manual
+- Com `ASAAS_SPLIT_ENABLED=true`, Asaas clínico exige **carteira do dono da prática** (`asaas_wallet_id`); sem wallet cai para PIX manual (se configurado) ou «não configurado»
+- PIX manual **não** tem conciliação bancária automática — depende de «Já paguei» + confirmação humana
+- Split clínica → terapeuta (reparto interno entre membros) — **não** implementado; o split Asaas é plataforma ↔ dono
 - Paciente **não acede** ao prontuário clínico completo (portal: pagamentos, consultas online, conversas, LGPD)
-- **API REST v1** apenas para profissionais (sem API paciente para app móvel ainda)
 - Admin **não gere** pacientes de outros profissionais na UI clínica
 - Plano Clínica: convites de equipa; downgrade/expiração remove membros (`releaseTeamIfUnavailable`)
 - Registo via convite de equipa **não** pré-preenche token automaticamente
@@ -775,6 +798,8 @@ Eventos tratados:
 - WhatsApp Meta + Evolution com admin UI e chatbot suporte
 - Notificações in-app (12+ tipos) + lembretes agendados
 - Conversas clínicas, chatbot widget, mesa de suporte
+- Modo híbrido Asaas + PIX manual (`payment_method_preference`, confirmação `pending_confirmation`)
+- API REST v1 também para paciente (pagamentos, conversas, etc.)
 
 Ver detalhes: [COMUNICACAO.md](COMUNICACAO.md)
 
@@ -845,6 +870,68 @@ Coluna `annual_price_cents` na BD; fallback via `SUBSCRIPTION_ANNUAL_DISCOUNT_PE
 
 **Admin:** dashboard focado em LGPD; **não acede** a `/payments` nem a dados financeiros clínicos de consultórios (403 por policy).
 
+### Modo híbrido Asaas + PIX manual
+<a id="modo-hibrido-asaas-pix-manual"></a>
+
+Aplica-se **só a pagamentos clínicos** (portal paciente / `PaymentService`). A assinatura SaaS (`/assinatura`) continua **sempre Asaas**.
+
+Não existe model `Clinic`: o pagador/recebedor configurável é o **User dono da prática** (`clinic_owner_id === null`, resolvido via `clinicalPracticeId()` / `PaymentSettingsService::practiceOwnerFor()`). Membros da equipa **não** editam preferência nem PIX; o checkout do paciente usa sempre as settings do dono.
+
+#### Campos em `users` (dono)
+
+| Campo | Valores / uso |
+|-------|----------------|
+| `payment_method_preference` | `auto` (default) · `asaas` · `manual` |
+| `asaas_wallet_id` | Carteira Asaas (Connect ou manual); usada no split |
+| `pix_manual_link` | Chave PIX, e-mail, telefone ou URL de pagamento |
+| `pix_qrcode_path` | Imagem QR em `storage` (`pix-qrcodes/...`), servida via rota pública de storage |
+
+UI: partial de perfil `payment-gateway-section` · `POST /profile/payment-settings` (`profile.payment-settings.update`).
+
+#### Resolução (`PaymentSettingsService::resolveForPayee`)
+
+| Preferência | Regra |
+|-------------|--------|
+| **`auto`** | Asaas se disponível; senão PIX manual se configurado; senão «não configurado» |
+| **`asaas`** | Só Asaas; se Asaas indisponível → erro «não configurado» (ignora PIX manual) |
+| **`manual`** | Só PIX manual; exige `pix_manual_link` ou `pix_qrcode_path` |
+
+**Quando Asaas está «disponível» para o dono:**
+
+- Tem `asaas_wallet_id`, **ou**
+- `ASAAS_SPLIT_ENABLED=false` → cobrança na conta da **plataforma** (comportamento histórico; não bloqueia checkout sem carteira)
+
+Com `ASAAS_SPLIT_ENABLED=true` e sem wallet: `auto` cai para PIX manual (se houver); `asaas` fica não configurado.
+
+**Checkout:** `PaymentService::initiatePortalPayment` → ramo Asaas (PIX/cartão + webhook) ou `prepareManualPixCheckout` (copia meta PIX do profissional; `gateway = manual`).
+
+#### Fluxo PIX manual (confirmação humana)
+
+```mermaid
+sequenceDiagram
+    participant P as Paciente
+    participant Portal as Portal /pagamentos
+    participant Pay as PaymentService
+    participant D as Dono da prática
+
+    P->>Portal: POST .../pagar
+    Portal->>Pay: initiatePortalPayment (modo manual)
+    Pay-->>P: QR / chave PIX do profissional
+    P->>P: Paga no banco
+    P->>Portal: POST .../ja-paguei
+    Pay->>Pay: status = pending_confirmation
+    Pay->>D: PaymentAwaitingManualConfirmationNotification
+    D->>Portal: POST /payments/{id}/confirm-manual
+    Pay->>Pay: status = paid + paid_at
+```
+
+1. Paciente inicia pagamento → vê PIX estático do dono (não gera cobrança Asaas).
+2. Após transferir, clica **«Já paguei»** → `pending_confirmation` + notificação ao dono.
+3. Dono confere o extrato e **confirma** em `/payments/{id}` → `paid`.
+4. Enquanto `pending_confirmation`, o paciente não volta a iniciar checkout Asaas; o profissional pode ainda cancelar/ajustar status na UI financeira.
+
+**Fora de escopo:** conciliação automática com banco; split interno clínica→terapeuta.
+
 ### Variáveis de ambiente
 
 | Variável | Uso |
@@ -865,7 +952,9 @@ Coluna `annual_price_cents` na BD; fallback via `SUBSCRIPTION_ANNUAL_DISCOUNT_PE
 | `SUBSCRIPTION_TRIAL_DAYS` | Duração do trial |
 | `SUBSCRIPTION_EXPIRING_SOON_DAYS` | Janela de lembrete antes de expirar |
 | `SUBSCRIPTION_ANNUAL_DISCOUNT_PERCENT` | Desconto fallback se `annual_price_cents` = 0 |
-| `users.asaas_wallet_id` | Carteira Asaas do profissional (perfil) |
+| `users.asaas_wallet_id` | Carteira Asaas do **dono** (perfil / Connect) |
+| `users.payment_method_preference` | `auto` \| `asaas` \| `manual` (só dono edita) |
+| `users.pix_manual_link` / `pix_qrcode_path` | PIX estático para checkout manual |
 | `users.phone` | Obrigatório para Connect em produção (≥10 dígitos) |
 
 **Comandos agendados:**
@@ -878,11 +967,12 @@ Coluna `annual_price_cents` na BD; fallback via `SUBSCRIPTION_ANNUAL_DISCOUNT_PE
 
 **Notificações ao paciente:** `PatientPaymentDueNotification` (mail + database) — nova cobrança, lembrete (`PAYMENT_PATIENT_REMINDER_DAYS`) e atraso (`PAYMENT_OVERDUE`). Link in-app → `/area-paciente/pagamentos/{id}`.
 
-**Notificações ao profissional:** `ProfessionalClinicalPaymentNotification` — pagamento confirmado ou em atraso via webhook. Link in-app → `/payments/{id}` (`PAYMENT_PROFESSIONAL_NOTIFICATIONS_ENABLED`).
+**Notificações ao profissional:** `ProfessionalClinicalPaymentNotification` — pagamento confirmado ou em atraso via webhook. Link in-app → `/payments/{id}` (`PAYMENT_PROFESSIONAL_NOTIFICATIONS_ENABLED`).  
+**PIX manual:** `PaymentAwaitingManualConfirmationNotification` quando o paciente declara «Já paguei».
 
 **Asaas Connect:** `POST /profile/asaas-wallet` · CPF/CNPJ, CEP (autofill ViaCEP), morada, número, bairro · telefone no perfil. Stub sem credenciais.
 
-**Portal paciente:** `/area-paciente` mostra card de cobranças pendentes; `/area-paciente/pagamentos` — escolha PIX/cartão quando o profissional não fixou método.
+**Portal paciente:** `/area-paciente` mostra card de cobranças pendentes; `/area-paciente/pagamentos` — Asaas (PIX/cartão) ou PIX manual conforme resolução do dono; «Já paguei» só no ramo manual.
 
 **Dashboard profissional:** alerta de cobranças pendentes (`x-pending-payments-alert`), painel de split mensal (`x-clinical-revenue-split-panel`: bruto, repasse, comissão), banner de assinatura, feed de notificações.
 
@@ -909,9 +999,13 @@ flowchart LR
     end
     subgraph Clinico
         Pac[Paciente] --> Portal[/area-paciente/pagamentos]
-        Portal --> AsaasPay[Asaas Payment]
-        AsaasPay --> Split[Split opcional]
+        Portal --> Resolve{PaymentSettingsService}
+        Resolve -->|asaas| AsaasPay[Asaas Payment]
+        Resolve -->|manual| PixManual[PIX estático + Já paguei]
+        AsaasPay --> Split[Split opcional wallet do dono]
         AsaasPay --> Webhook
+        PixManual --> Confirm[Dono confirma manual]
+        Confirm --> PaySvc
     end
     Webhook[POST /webhooks/asaas] --> PaySvc[PaymentService]
     Webhook --> SubSvc[SubscriptionService]
