@@ -4,21 +4,34 @@ namespace App\Services;
 
 use App\Models\Patient;
 use App\Models\User;
+use App\Support\ImageUploadOptimizer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class UserAvatarService
 {
+    public function __construct(
+        private readonly ImageUploadOptimizer $optimizer,
+    ) {}
+
     public function store(User|Patient $owner, UploadedFile $file): void
     {
         $this->deleteStoredFile($owner);
 
-        $path = $file->storeAs(
-            $this->storageDirectory($owner),
-            Str::uuid()->toString().'.jpg',
-            'public'
-        );
+        $optimized = $this->optimizer->optimize($file, maxEdge: 512, quality: 90);
+
+        try {
+            $path = $optimized->storeAs(
+                $this->storageDirectory($owner),
+                Str::uuid()->toString().'.jpg',
+                'public'
+            );
+        } finally {
+            if ($optimized !== $file) {
+                $this->optimizer->cleanupTemp($optimized);
+            }
+        }
 
         $owner->avatar_path = $path;
     }

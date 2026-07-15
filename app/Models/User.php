@@ -397,7 +397,11 @@ class User extends Authenticatable implements MustVerifyEmail
             return null;
         }
 
-        return Storage::disk('public')->url($this->avatar_path);
+        // Rota da app (não depende de symlink public/storage — comum falhar na hospedagem).
+        return route('media.user-avatar', [
+            'user' => $this,
+            'v' => $this->updated_at?->getTimestamp() ?? time(),
+        ]);
     }
 
     public function avatarInitials(): string

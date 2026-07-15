@@ -216,7 +216,10 @@ class Patient extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->avatar_path);
+        return route('media.patient-avatar', [
+            'patient' => $this,
+            'v' => $this->updated_at?->getTimestamp() ?? time(),
+        ]);
     }
 
     public function avatarInitials(): string

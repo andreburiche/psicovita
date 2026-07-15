@@ -167,6 +167,10 @@ return [
         'type' => 'tipo',
         'details' => 'detalhes',
         'notes' => 'notas',
+        'avatar' => 'foto de perfil',
+        'institution_logo' => 'logo da instituição',
+        'remove_avatar' => 'remover foto de perfil',
+        'remove_institution_logo' => 'remover logo da instituição',
     ],
 
 ];

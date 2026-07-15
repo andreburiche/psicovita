@@ -28,7 +28,7 @@ class ProfileUpdateRequest extends FormRequest
                 new UniqueUserEmail($this->user()->id),
             ],
             'crp_number' => ['nullable', 'string', 'max:32'],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
             'remove_avatar' => ['sometimes', 'boolean'],
             'avatar_shape' => ['nullable', 'string', Rule::in(AvatarStyleOptions::SHAPES)],
             'avatar_ring' => ['nullable', 'string', Rule::in(AvatarStyleOptions::RINGS)],
@@ -43,7 +43,7 @@ class ProfileUpdateRequest extends FormRequest
         }
 
         if ($this->user()->isClinicOwner()) {
-            $rules['institution_logo'] = ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,svg', 'max:2048'];
+            $rules['institution_logo'] = ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,svg', 'max:8192'];
             $rules['remove_institution_logo'] = ['sometimes', 'boolean'];
         }
 
@@ -52,6 +52,24 @@ class ProfileUpdateRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'avatar' => __('foto de perfil'),
+            'institution_logo' => __('logo da instituição'),
+            'remove_avatar' => __('remover foto de perfil'),
+            'remove_institution_logo' => __('remover logo da instituição'),
+            'professional_function' => __('função profissional'),
+            'professional_bio' => __('biografia profissional'),
+            'phone' => __('telefone'),
+            'crp_number' => __('número de registo profissional'),
+            'ui_accent' => __('cor de destaque'),
+        ];
     }
 
     /**

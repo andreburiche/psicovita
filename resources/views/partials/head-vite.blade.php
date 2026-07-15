@@ -1,10 +1,11 @@
 @php
     $viteEntries = $viteEntries ?? ['resources/css/app.css', 'resources/js/app.js'];
+    $hasViteBuild = file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json'));
 @endphp
-@if (file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json')))
+@if ($hasViteBuild)
     @vite($viteEntries)
-@elseif (app()->environment('local'))
-    {{-- Tailwind v4 no browser: variante manual + @theme (cores brand) — o CDN antigo ignorava darkMode por classe. --}}
+@else
+    {{-- Fallback sem Vite (local ou hospedagem sem public/build): Tailwind browser + Alpine CDN. --}}
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     {{-- Não usar @import "tailwindcss" aqui: o navegador resolve como URL relativa (/tailwindcss → 404).
          O @tailwindcss/browser compila utilities a partir deste bloco; ver health-up.blade.php no Laravel. --}}
@@ -46,6 +47,10 @@
             white-space: normal;
         }
 
+        [x-cloak] {
+            display: none !important;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
                 animation-duration: 0.01ms !important;
@@ -63,6 +68,4 @@
     <script defer src="https://cdn.jsdelivr.net/npm/imask@7.6.1/dist/imask.min.js" crossorigin="anonymous"></script>
     <script defer src="{{ asset('js/form-widgets-fallback.js') }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" crossorigin="anonymous"></script>
-@else
-    @vite($viteEntries)
 @endif

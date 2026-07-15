@@ -77,4 +77,19 @@ class ProfileAvatarTest extends TestCase
             ->assertOk()
             ->assertSee(__('Foto de perfil'), false);
     }
+
+    public function test_avatar_is_served_via_media_route(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $path = UploadedFile::fake()->image('avatar.jpg', 200, 200)->store('avatars/'.$user->id, 'public');
+        $user->forceFill(['avatar_path' => $path])->save();
+
+        $this->get(route('media.user-avatar', $user))
+            ->assertOk()
+            ->assertHeader('content-disposition');
+
+        $this->assertStringContainsString('/media/avatars/users/'.$user->id, (string) $user->fresh()->avatarUrl());
+    }
 }

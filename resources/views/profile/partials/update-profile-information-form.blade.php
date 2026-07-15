@@ -189,9 +189,23 @@
                         </div>
                         <div class="min-w-0 flex-1 space-y-3">
                             <div>
-                                <x-input-label for="institution_logo" :value="__('Enviar logo')" class="text-slate-700 dark:text-slate-200" />
-                                <input id="institution_logo" name="institution_logo" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" class="mt-1.5 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-violet-700 hover:file:bg-violet-100 dark:text-slate-300 dark:file:bg-violet-950 dark:file:text-violet-300" />
-                                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{{ __('PNG, JPG, WebP ou SVG — até 2 MB. Se não enviar, usamos a marca padrão do sistema.') }}</p>
+                                <x-input-label for="institution_logo" :value="__('Enviar logo da instituição')" class="text-slate-700 dark:text-slate-200" />
+                                <input
+                                    id="institution_logo"
+                                    name="institution_logo"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                                    class="mt-1.5 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-violet-700 hover:file:bg-violet-100 dark:text-slate-300 dark:file:bg-violet-950 dark:file:text-violet-300"
+                                    x-on:change="
+                                        const file = $event.target.files?.[0];
+                                        if (!file) return;
+                                        if (file.size > 8 * 1024 * 1024) {
+                                            $event.target.value = '';
+                                            window.alert(@js(__('A logo da instituição deve ter no máximo 8 MB. Isto é diferente da foto de perfil (acima).')));
+                                        }
+                                    "
+                                />
+                                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{{ __('Campo separado da foto de perfil. PNG, JPG, WebP ou SVG — até 8 MB. Usado só nos PDFs clínicos.') }}</p>
                                 <x-input-error class="mt-2" :messages="$errors->get('institution_logo')" />
                             </div>
                             @if ($user->hasInstitutionLogo())
