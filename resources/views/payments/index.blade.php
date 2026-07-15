@@ -2,8 +2,13 @@
     <x-slot name="header">{{ __('Financeiro') }}</x-slot>
 
     <div class="mx-auto max-w-6xl space-y-8 px-4 sm:px-6 lg:px-8">
+        @php $exportQuery = request()->except(['page', 'per_page']); @endphp
         <x-page-hero :title="__('Financeiro')" :subtitle="__('Pagamentos associados aos seus pacientes.')" icon="currency" iconTone="teal">
             <x-slot name="actions">
+                <x-export-actions
+                    :pdf-route="route('payments.export.pdf', $exportQuery)"
+                    :excel-route="route('payments.export.excel', $exportQuery)"
+                />
                 <a
                     href="{{ route('payments.create') }}"
                     class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/25 transition hover:from-violet-500 hover:to-indigo-500"

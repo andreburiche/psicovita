@@ -4,6 +4,10 @@
     <div class="mx-auto max-w-7xl space-y-6">
         <x-page-hero :title="__('Prontuário')" :subtitle="__('Registros clínicos por paciente (conteúdo sensível — LGPD).')" icon="document">
             <x-slot name="actions">
+                <x-export-actions
+                    :pdf-route="route('clinical-records.export.pdf')"
+                    :excel-route="route('clinical-records.export.excel')"
+                />
                 <a
                     href="{{ route('clinical-records.create') }}"
                     class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500"

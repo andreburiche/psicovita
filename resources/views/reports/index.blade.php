@@ -2,7 +2,14 @@
     <x-slot name="header">{{ $title }}</x-slot>
 
     <div class="mx-auto max-w-6xl space-y-8 px-4 sm:px-6 lg:px-8">
-        <x-page-hero :title="$title" :subtitle="__('Indicadores agregados do seu consultório.')" icon="chart-bar" />
+        <x-page-hero :title="$title" :subtitle="__('Indicadores agregados do seu consultório.')" icon="chart-bar">
+            <x-slot name="actions">
+                <x-export-actions
+                    :pdf-route="route('reports.export.pdf')"
+                    :excel-route="route('reports.export.excel')"
+                />
+            </x-slot>
+        </x-page-hero>
 
         <div class="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-violet-50/25 to-indigo-50/25 p-6 shadow-lg shadow-violet-900/5 ring-1 ring-violet-100/70 dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-violet-950/20 dark:shadow-black/20 dark:ring-violet-900/30">
             <div class="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-violet-500/12 blur-3xl dark:bg-violet-500/10" aria-hidden="true"></div>

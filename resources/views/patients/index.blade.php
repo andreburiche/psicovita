@@ -2,8 +2,13 @@
     <x-slot name="header">{{ __('Pacientes') }}</x-slot>
 
     <div class="mx-auto max-w-6xl space-y-8 px-4 sm:px-6 lg:px-8">
+        @php $exportQuery = request()->except(['page', 'per_page']); @endphp
         <x-page-hero :title="__('Pacientes')" :subtitle="__('Lista de pacientes com busca rápida por nome, e-mail ou telefone.')" icon="users">
             <x-slot name="actions">
+                <x-export-actions
+                    :pdf-route="route('patients.export.pdf', $exportQuery)"
+                    :excel-route="route('patients.export.excel', $exportQuery)"
+                />
                 @if (! ($patientQuota['at_limit'] ?? false))
                     <a
                         href="{{ route('patients.create') }}"

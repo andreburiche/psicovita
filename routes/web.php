@@ -23,6 +23,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleBlockController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\ModuleListExportController;
 use App\Http\Controllers\SessionScheduleExportController;
 use App\Http\Controllers\TherapySessionController;
 use App\Http\Controllers\TherapySessionVideoCallController;
@@ -87,6 +88,10 @@ Route::middleware(['auth', 'verified', 'professional', 'subscription.access'])->
     Route::post('patients/{patient}/portal-invite/resend', [PatientController::class, 'resendPortalInvite'])
         ->middleware('throttle:10,1')
         ->name('patients.portal-invite.resend');
+    Route::get('patients/export/pdf', [ModuleListExportController::class, 'patientsPdf'])
+        ->name('patients.export.pdf');
+    Route::get('patients/export/excel', [ModuleListExportController::class, 'patientsExcel'])
+        ->name('patients.export.excel');
     Route::resource('patients', PatientController::class);
     Route::resource('patients.document-requests', DocumentRequestController::class)
         ->scoped(['document_request' => 'patient_id']);
@@ -169,7 +174,15 @@ Route::middleware(['auth', 'verified', 'professional', 'subscription.access'])->
     Route::patch('payments/{payment}/quick', [PaymentController::class, 'quickUpdate'])->name('payments.quick-update');
     Route::post('payments/{payment}/confirmar-pix-manual', [PaymentController::class, 'confirmManual'])
         ->name('payments.confirm-manual');
+    Route::get('payments/export/pdf', [ModuleListExportController::class, 'paymentsPdf'])
+        ->name('payments.export.pdf');
+    Route::get('payments/export/excel', [ModuleListExportController::class, 'paymentsExcel'])
+        ->name('payments.export.excel');
     Route::resource('payments', PaymentController::class);
+    Route::get('clinical-records/export/pdf', [ModuleListExportController::class, 'clinicalRecordsPdf'])
+        ->name('clinical-records.export.pdf');
+    Route::get('clinical-records/export/excel', [ModuleListExportController::class, 'clinicalRecordsExcel'])
+        ->name('clinical-records.export.excel');
     Route::resource('clinical-records', ClinicalRecordController::class);
 
     Route::get('/api/cep/{cep}', CepLookupController::class)
@@ -185,6 +198,10 @@ Route::middleware(['auth', 'verified', 'professional', 'subscription.access'])->
     Route::get('/agenda/export/excel', [SessionScheduleExportController::class, 'excelSchedule'])
         ->name('schedule.export.excel');
     Route::get('/relatorios', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/relatorios/export/pdf', [ModuleListExportController::class, 'reportsPdf'])
+        ->name('reports.export.pdf');
+    Route::get('/relatorios/export/excel', [ModuleListExportController::class, 'reportsExcel'])
+        ->name('reports.export.excel');
 
     Route::get('/ia-assistente', [AiAssistantController::class, 'index'])
         ->middleware('subscription.feature:use_ai')
