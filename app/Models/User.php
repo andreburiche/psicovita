@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentMethodPreference;
 use App\Enums\UserProfessionalFunction;
 use App\Enums\UserRole;
+use App\Services\ProfessionalPixSettingsService;
 use App\Services\SubscriptionService;
 use App\Services\UserAvatarService;
 use App\Support\AvatarStyleOptions;
@@ -45,6 +47,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'whatsapp_notifications',
         'asaas_customer_id',
         'asaas_wallet_id',
+        'pix_manual_link',
+        'pix_qrcode_path',
+        'payment_method_preference',
     ];
 
     protected $hidden = [
@@ -63,6 +68,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'professional_function' => UserProfessionalFunction::class,
             'avatar_style' => 'array',
             'whatsapp_notifications' => 'boolean',
+            'payment_method_preference' => PaymentMethodPreference::class,
         ];
     }
 
@@ -71,6 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
         static::deleting(function (User $user) {
             app(UserAvatarService::class)->deleteStoredFile($user);
             app(\App\Services\InstitutionLogoService::class)->deleteStoredFile($user);
+            app(ProfessionalPixSettingsService::class)->deleteQrcode($user);
         });
 
         static::saving(function (User $user) {
@@ -431,6 +438,27 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return Storage::disk('public')->url($this->institution_logo_path);
+    }
+
+    public function pixQrcodeUrl(): ?string
+    {
+        if (blank($this->pix_qrcode_path) || ! Storage::disk('public')->exists($this->pix_qrcode_path)) {
+            return null;
+        }
+
+        return route('storage.public', [
+            'path' => $this->pix_qrcode_path,
+            'v' => $this->updated_at?->getTimestamp() ?? time(),
+        ]);
+    }
+
+    public function clinicalPracticeOwner(): User
+    {
+        if ($this->isClinicTeamMember() && $this->clinic_owner_id) {
+            return static::query()->find($this->clinic_owner_id) ?? $this;
+        }
+
+        return $this;
     }
 
     public function hasInstitutionLogo(): bool

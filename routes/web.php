@@ -47,6 +47,7 @@ use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\WhatsAppIntegrationController;
 use App\Http\Controllers\PatientLgpdController;
 use App\Http\Controllers\ProfessionalAsaasWalletController;
+use App\Http\Controllers\ProfessionalPaymentSettingsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SubscriptionCheckoutController;
 use App\Http\Controllers\SupportDeskController;
@@ -166,6 +167,8 @@ Route::middleware(['auth', 'verified', 'professional', 'subscription.access'])->
             ->name('therapy-sessions.video.save-record');
     });
     Route::patch('payments/{payment}/quick', [PaymentController::class, 'quickUpdate'])->name('payments.quick-update');
+    Route::post('payments/{payment}/confirmar-pix-manual', [PaymentController::class, 'confirmManual'])
+        ->name('payments.confirm-manual');
     Route::resource('payments', PaymentController::class);
     Route::resource('clinical-records', ClinicalRecordController::class);
 
@@ -250,6 +253,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/area-paciente/pagamentos/{payment}/pagar', [PatientPaymentController::class, 'pay'])
             ->middleware('throttle:10,1')
             ->name('patient.payments.pay');
+        Route::post('/area-paciente/pagamentos/{payment}/ja-paguei', [PatientPaymentController::class, 'alreadyPaid'])
+            ->middleware('throttle:10,1')
+            ->name('patient.payments.already-paid');
     });
 
     Route::middleware('lgpd.admin')->prefix('admin')->name('admin.')->group(function () {
@@ -371,6 +377,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/asaas-wallet', [ProfessionalAsaasWalletController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('profile.asaas-wallet.provision');
+    Route::post('/profile/recebimento', [ProfessionalPaymentSettingsController::class, 'update'])
+        ->middleware('throttle:20,1')
+        ->name('profile.payment-settings.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

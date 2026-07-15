@@ -18,7 +18,9 @@
 
         <div class="space-y-6">
             @if ($user->isProfessional())
-                @include('profile.partials.subscription-section')
+                @unless ($user->isClinicTeamMember())
+                    @include('profile.partials.subscription-section')
+                @endunless
                 @include('profile.partials.payment-gateway-section')
             @endif
             @include('profile.partials.update-profile-information-form')
@@ -46,8 +48,8 @@
                     @if ($user->isProfessional())
                         @unless ($user->isClinicTeamMember())
                             @include('profile.partials.subscription-section')
-                            @include('profile.partials.payment-gateway-section')
                         @endunless
+                        @include('profile.partials.payment-gateway-section')
                         @include('profile.partials.clinic-team-section')
                     @endif
                     @include('profile.partials.update-profile-information-form')

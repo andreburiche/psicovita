@@ -20,6 +20,7 @@ class PublicStorageController extends Controller
         'professional-files/',
         'patient-documents/',
         'document-request-files/',
+        'pix-qrcodes/',
     ];
 
     public function show(string $path): StreamedResponse

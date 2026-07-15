@@ -13,6 +13,11 @@
             'idle' => 'border-amber-200/80 bg-white text-amber-900 hover:border-amber-400 hover:bg-amber-50 dark:border-amber-900 dark:bg-slate-900 dark:text-amber-200 dark:hover:bg-amber-950/40',
             'dot' => 'bg-amber-500',
         ],
+        \App\Enums\PaymentStatus::PendingConfirmation->value => [
+            'active' => 'border-sky-500 bg-sky-50 text-sky-900 ring-sky-500/30 dark:border-sky-500 dark:bg-sky-950/50 dark:text-sky-100',
+            'idle' => 'border-sky-200/80 bg-white text-sky-900 hover:border-sky-400 hover:bg-sky-50 dark:border-sky-900 dark:bg-slate-900 dark:text-sky-200 dark:hover:bg-sky-950/40',
+            'dot' => 'bg-sky-500',
+        ],
         \App\Enums\PaymentStatus::Overdue->value => [
             'active' => 'border-rose-500 bg-rose-50 text-rose-900 ring-rose-500/30 dark:border-rose-500 dark:bg-rose-950/50 dark:text-rose-100',
             'idle' => 'border-rose-200/80 bg-white text-rose-800 hover:border-rose-400 hover:bg-rose-50 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-300 dark:hover:bg-rose-950/40',
@@ -30,7 +35,7 @@
         ],
     ];
 
-    $primaryStatuses = [\App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::Paid, \App\Enums\PaymentStatus::Overdue];
+    $primaryStatuses = [\App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::PendingConfirmation, \App\Enums\PaymentStatus::Paid, \App\Enums\PaymentStatus::Overdue];
     $secondaryStatuses = [\App\Enums\PaymentStatus::Cancelled, \App\Enums\PaymentStatus::Refunded];
 
     $methodOptions = collect([

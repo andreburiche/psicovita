@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Services\PaymentService;
+use App\Support\PaymentMethodResolution;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -35,12 +36,23 @@ class PatientPaymentController extends Controller
     public function show(Payment $payment): View
     {
         $this->authorize('view', $payment);
-        $payment->load(['therapySession', 'patient']);
-        $payment = $this->payments->syncPixCheckoutForDisplay($payment);
+        $payment->load(['therapySession', 'patient.professional']);
+        $resolution = $this->payments->resolveCheckoutForPayment($payment);
+
+        if (
+            $resolution->isManual()
+            && in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Overdue], true)
+            && ($payment->gateway_meta['checkout_mode'] ?? null) !== PaymentMethodResolution::MODE_MANUAL
+        ) {
+            $payment = $this->payments->prepareManualPixCheckout($payment, $resolution);
+        } elseif ($resolution->isAsaas()) {
+            $payment = $this->payments->syncPixCheckoutForDisplay($payment);
+        }
 
         return view('patient.payments.show', [
             'payment' => $payment,
             'needsMethodChoice' => $this->payments->needsPaymentMethodChoice($payment),
+            'checkoutResolution' => $resolution,
         ]);
     }
 
@@ -67,5 +79,22 @@ class PatientPaymentController extends Controller
         return redirect()
             ->route('patient.payments.show', $payment)
             ->with('status', $this->payments->portalPaymentSuccessMessage($payment));
+    }
+
+    public function alreadyPaid(Payment $payment): RedirectResponse
+    {
+        $this->authorize('reportPaid', $payment);
+
+        try {
+            $this->payments->markAwaitingManualConfirmation($payment);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->back()
+                ->withErrors(['payment' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('patient.payments.show', $payment)
+            ->with('status', __('Obrigado! Informámos o profissional. Assim que confirmar o PIX, o pagamento ficará como pago.'));
     }
 }

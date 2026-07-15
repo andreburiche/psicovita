@@ -135,7 +135,7 @@
                 @php
                     $badgeVariant = match ($payment->status) {
                         \App\Enums\PaymentStatus::Paid => 'success',
-                        \App\Enums\PaymentStatus::Pending => 'warning',
+                        \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::PendingConfirmation => 'warning',
                         \App\Enums\PaymentStatus::Overdue => 'danger',
                         \App\Enums\PaymentStatus::Cancelled => 'neutral',
                         \App\Enums\PaymentStatus::Refunded => 'neutral',

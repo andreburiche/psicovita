@@ -18,6 +18,10 @@ class PixCheckout
      */
     public static function isDisplayable(array $pix): bool
     {
+        if ((bool) ($pix['raw']['manual'] ?? false)) {
+            return self::hasImage($pix) || filled($pix['payload'] ?? null);
+        }
+
         if (! self::hasImage($pix)) {
             return false;
         }

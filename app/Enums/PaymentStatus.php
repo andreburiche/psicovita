@@ -5,6 +5,7 @@ namespace App\Enums;
 enum PaymentStatus: string
 {
     case Pending = 'pending';
+    case PendingConfirmation = 'pending_confirmation';
     case Paid = 'paid';
     case Overdue = 'overdue';
     case Cancelled = 'cancelled';
@@ -14,6 +15,7 @@ enum PaymentStatus: string
     {
         return match ($this) {
             self::Pending => 'Pendente',
+            self::PendingConfirmation => 'Aguardando confirmação',
             self::Paid => 'Pago',
             self::Overdue => 'Em atraso',
             self::Cancelled => 'Cancelado',

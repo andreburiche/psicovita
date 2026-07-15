@@ -52,6 +52,38 @@ class PaymentPolicy
         return true;
     }
 
+    public function reportPaid(User $user, Payment $payment): Response|bool
+    {
+        if (! app(PaymentService::class)->patientOwnsPayment($user, $payment)) {
+            return false;
+        }
+
+        if (! in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Overdue], true)) {
+            return Response::deny(__('Este pagamento já foi liquidado ou cancelado.'));
+        }
+
+        $mode = $payment->gateway_meta['checkout_mode'] ?? null;
+
+        if ($mode !== 'manual') {
+            return Response::deny(__('Só é possível indicar «Já paguei» em cobranças PIX manuais.'));
+        }
+
+        return true;
+    }
+
+    public function confirmManual(User $user, Payment $payment): bool
+    {
+        if (! $user->isProfessional() || $user->isClinicTeamMember()) {
+            return false;
+        }
+
+        if ($payment->status !== PaymentStatus::PendingConfirmation) {
+            return false;
+        }
+
+        return (int) $payment->patient?->professional_id === (int) $user->clinicalPracticeId();
+    }
+
     public function restore(User $user, Payment $payment): bool
     {
         return false;

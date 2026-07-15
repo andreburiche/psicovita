@@ -9,6 +9,10 @@
         $pix = $isPix ? ($payment->gateway_meta['pix'] ?? null) : null;
         $invoiceUrl = $payment->gateway_meta['invoice_url'] ?? null;
         $isStub = (bool) ($payment->gateway_meta['stub'] ?? false);
+        $resolution = $checkoutResolution ?? null;
+        $isManualCheckout = ($payment->gateway_meta['checkout_mode'] ?? null) === \App\Support\PaymentMethodResolution::MODE_MANUAL
+            || ($resolution?->isManual() ?? false);
+        $isNotConfigured = $resolution?->isNotConfigured() ?? false;
     @endphp
 
     <x-patient-portal-breadcrumb :items="[
@@ -27,7 +31,7 @@
         <x-slot name="actions">
             <x-ui.badge :variant="match ($payment->status) {
                 \App\Enums\PaymentStatus::Paid => 'success',
-                \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::Overdue => 'warning',
+                \App\Enums\PaymentStatus::Pending, \App\Enums\PaymentStatus::Overdue, \App\Enums\PaymentStatus::PendingConfirmation => 'warning',
                 default => 'neutral',
             }" class="!text-sm">{{ $payment->status->label() }}</x-ui.badge>
         </x-slot>
@@ -53,6 +57,16 @@
             <p class="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{{ __('Pagamento confirmado') }}</p>
             <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ __('Obrigado. A sua sessão está liquidada na plataforma.') }}</p>
         </div>
+    @elseif ($payment->status === \App\Enums\PaymentStatus::PendingConfirmation)
+        <div class="rounded-2xl border border-sky-200/80 bg-sky-50/80 p-5 dark:border-sky-800/40 dark:bg-sky-950/30">
+            <p class="text-sm font-semibold text-sky-900 dark:text-sky-200">{{ __('Aguardando confirmação do profissional') }}</p>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ __('Indicou que já pagou. Assim que o profissional confirmar o PIX, o estado muda para pago.') }}</p>
+        </div>
+        @if (is_array($pix))
+            <x-pix-checkout-panel :pix="$pix" :stub="$isStub" :manual="true" :payment="$payment" />
+        @endif
+    @elseif ($isNotConfigured)
+        <x-pix-checkout-panel :not-configured="true" />
     @elseif ($needsMethodChoice ?? false)
         @can('pay', $payment)
             <form method="POST" action="{{ route('patient.payments.pay', $payment) }}" class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
@@ -66,14 +80,25 @@
                 </button>
             </form>
         @endcan
+    @elseif ($isManualCheckout && is_array($pix))
+        <x-pix-checkout-panel :pix="$pix" :stub="$isStub" :manual="true" :payment="$payment" />
     @elseif ($isPix && is_array($pix))
-        <x-pix-checkout-panel :pix="$pix" :stub="$isStub" />
+        <x-pix-checkout-panel :pix="$pix" :stub="$isStub" :payment="$payment" />
     @elseif ($isCard && filled($invoiceUrl))
         <x-card-checkout-panel :invoice-url="$invoiceUrl" :stub="$isStub" />
     @elseif ($isCard)
         <div class="rounded-2xl border border-indigo-200/80 bg-indigo-50/80 p-5 dark:border-indigo-800/40 dark:bg-indigo-950/30">
             <p class="text-sm text-slate-700 dark:text-slate-300">{{ __('Clique em «Gerar link de pagamento» para abrir o checkout com cartão.') }}</p>
         </div>
+    @elseif ($isManualCheckout)
+        @can('pay', $payment)
+            <form method="POST" action="{{ route('patient.payments.pay', $payment) }}">
+                @csrf
+                <button type="submit" class="inline-flex items-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-500">
+                    {{ __('Ver dados PIX do profissional') }}
+                </button>
+            </form>
+        @endcan
     @endif
 
     <div class="flex flex-wrap gap-3 border-t border-slate-200/80 pt-4 dark:border-slate-700">
@@ -85,7 +110,7 @@
             {{ __('Voltar à lista') }}
         </a>
         @can('pay', $payment)
-            @unless ($needsMethodChoice ?? false)
+            @unless (($needsMethodChoice ?? false) || $isManualCheckout || $isNotConfigured)
                 <form method="POST" action="{{ route('patient.payments.pay', $payment) }}">
                     @csrf
                     <button

@@ -224,6 +224,23 @@ class PaymentController extends Controller
         return view('payments.show', compact('payment'));
     }
 
+    public function confirmManual(Payment $payment): RedirectResponse
+    {
+        $this->authorize('confirmManual', $payment);
+
+        try {
+            $this->payments->confirmManualPayment($payment);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->back()
+                ->withErrors(['payment' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('payments.show', $payment)
+            ->with('status', __('Pagamento PIX confirmado com sucesso.'));
+    }
+
     public function edit(Payment $payment): View
     {
         $payment->load(['patient', 'therapySession']);

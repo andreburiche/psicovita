@@ -15,8 +15,10 @@ use App\Models\SessionParticipant;
 use App\Models\TherapySession;
 use App\Models\User;
 use App\Notifications\PatientPaymentDueNotification;
+use App\Notifications\PaymentAwaitingManualConfirmationNotification;
 use App\Notifications\ProfessionalClinicalPaymentNotification;
 use App\Support\ContactHasher;
+use App\Support\PaymentMethodResolution;
 use App\Support\PixCheckout;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
@@ -28,6 +30,7 @@ class PaymentService
     public function __construct(
         private readonly PaymentGatewayInterface $gateway,
         private readonly PatientService $patients,
+        private readonly PaymentSettingsService $paymentSettings,
     ) {}
 
     /**
@@ -178,7 +181,11 @@ class PaymentService
      */
     public function markAsPaid(Payment $payment, array $meta = []): Payment
     {
-        $wasPayable = in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Overdue], true);
+        $wasPayable = in_array($payment->status, [
+            PaymentStatus::Pending,
+            PaymentStatus::Overdue,
+            PaymentStatus::PendingConfirmation,
+        ], true);
 
         $payment->update([
             'status' => PaymentStatus::Paid,
@@ -348,8 +355,25 @@ class PaymentService
 
     public function needsPaymentMethodChoice(Payment $payment): bool
     {
-        return $payment->payment_method === null
-            && in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Overdue], true);
+        if (! in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Overdue], true)) {
+            return false;
+        }
+
+        if ($payment->payment_method !== null) {
+            return false;
+        }
+
+        $resolution = $this->resolveCheckoutForPayment($payment);
+
+        // Modo manual não oferece cartão Asaas — vai directo ao PIX do profissional.
+        return $resolution->isAsaas();
+    }
+
+    public function resolveCheckoutForPayment(Payment $payment): PaymentMethodResolution
+    {
+        $payment->loadMissing('patient.professional');
+
+        return $this->paymentSettings->resolveForPatientProfessional($payment->patient);
     }
 
     public function initiatePortalPayment(Payment $payment, ?PaymentMethod $chosenMethod = null): Payment
@@ -358,10 +382,20 @@ class PaymentService
             throw new \InvalidArgumentException(__('Este pagamento não está pendente.'));
         }
 
-        $payment->loadMissing('patient');
+        $payment->loadMissing('patient.professional');
         $patient = $payment->patient;
         if ($patient === null) {
             throw new \InvalidArgumentException(__('Paciente não encontrado para esta cobrança.'));
+        }
+
+        $resolution = $this->paymentSettings->resolveForPatientProfessional($patient);
+
+        if ($resolution->isNotConfigured()) {
+            throw new \InvalidArgumentException(__('Este profissional ainda não configurou o recebimento. Entre em contacto diretamente.'));
+        }
+
+        if ($resolution->isManual()) {
+            return $this->prepareManualPixCheckout($payment, $resolution);
         }
 
         $method = $payment->payment_method ?? $chosenMethod;
@@ -394,6 +428,7 @@ class PaymentService
                 'billing_type' => $billingType,
                 'invoice_url' => $charge['raw']['invoiceUrl'] ?? null,
                 'stub' => $charge['raw']['stub'] ?? false,
+                'checkout_mode' => PaymentMethodResolution::MODE_ASAAS,
                 'pix' => $billingType === 'PIX' ? ($charge['pix'] ?? null) : null,
             ];
 
@@ -417,6 +452,78 @@ class PaymentService
         } catch (AsaasApiException $e) {
             throw new \InvalidArgumentException($e->getMessage(), previous: $e);
         }
+    }
+
+    public function prepareManualPixCheckout(Payment $payment, ?PaymentMethodResolution $resolution = null): Payment
+    {
+        $resolution ??= $this->resolveCheckoutForPayment($payment);
+
+        if (! $resolution->isManual() || ! $resolution->hasManualPix()) {
+            throw new \InvalidArgumentException(__('PIX manual não está configurado para este profissional.'));
+        }
+
+        $pix = [
+            'payload' => $resolution->pixManualLink,
+            'image_url' => $resolution->pixQrcodeUrl,
+            'encoded_image' => null,
+            'image_mime' => 'image/jpeg',
+            'raw' => ['manual' => true],
+        ];
+
+        $payment->update([
+            'gateway' => PaymentGateway::Manual,
+            'payment_method' => PaymentMethod::Pix,
+            'gateway_meta' => array_merge($payment->gateway_meta ?? [], [
+                'checkout_mode' => PaymentMethodResolution::MODE_MANUAL,
+                'pix' => $pix,
+                'pix_manual_link' => $resolution->pixManualLink,
+                'pix_qrcode_url' => $resolution->pixQrcodeUrl,
+            ]),
+        ]);
+
+        return $payment->fresh();
+    }
+
+    public function markAwaitingManualConfirmation(Payment $payment): Payment
+    {
+        if (! in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Overdue], true)) {
+            throw new \InvalidArgumentException(__('Este pagamento não pode ser marcado como aguardando confirmação.'));
+        }
+
+        $resolution = $this->resolveCheckoutForPayment($payment);
+        if (! $resolution->isManual()) {
+            throw new \InvalidArgumentException(__('Só é possível confirmar manualmente pagamentos PIX manuais.'));
+        }
+
+        $payment->update([
+            'status' => PaymentStatus::PendingConfirmation,
+            'payment_method' => PaymentMethod::Pix,
+            'gateway' => PaymentGateway::Manual,
+            'gateway_meta' => array_merge($payment->gateway_meta ?? [], [
+                'checkout_mode' => PaymentMethodResolution::MODE_MANUAL,
+                'manual_paid_reported_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        $payment = $payment->fresh(['patient.professional']);
+        $owner = $this->paymentSettings->practiceOwnerForPayment($payment);
+        if ($owner) {
+            $owner->notify(new PaymentAwaitingManualConfirmationNotification($payment));
+        }
+
+        return $payment;
+    }
+
+    public function confirmManualPayment(Payment $payment): Payment
+    {
+        if ($payment->status !== PaymentStatus::PendingConfirmation) {
+            throw new \InvalidArgumentException(__('Este pagamento não está aguardando confirmação manual.'));
+        }
+
+        return $this->markAsPaid($payment, [
+            'gateway' => PaymentGateway::Manual->value,
+            'payment_method' => PaymentMethod::Pix->value,
+        ]);
     }
 
     public function syncPixCheckoutForDisplay(Payment $payment): Payment
@@ -472,6 +579,12 @@ class PaymentService
 
     public function portalPaymentSuccessMessage(Payment $payment): string
     {
+        $mode = $payment->gateway_meta['checkout_mode'] ?? null;
+
+        if ($mode === PaymentMethodResolution::MODE_MANUAL) {
+            return __('Dados PIX do profissional. Escaneie o QR Code ou use a chave/link e depois toque em «Já paguei».');
+        }
+
         return $payment->payment_method === PaymentMethod::Card
             ? __('Link de pagamento gerado. Conclua o pagamento com cartão no ambiente seguro.')
             : __('Cobrança PIX gerada. Escaneie o QR Code ou copie o código.');
@@ -492,7 +605,8 @@ class PaymentService
         }
 
         $payment->loadMissing('patient.professional');
-        $walletId = $payment->patient?->professional?->asaas_wallet_id;
+        $owner = $this->paymentSettings->practiceOwnerForPayment($payment);
+        $walletId = $owner?->asaas_wallet_id;
         if (! filled($walletId)) {
             return null;
         }
