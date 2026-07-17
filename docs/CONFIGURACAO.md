@@ -91,12 +91,20 @@
 | Variável | Default | Descrição |
 |----------|---------|-----------|
 | `AI_ASSISTANT_ENABLED` | true | Assistente clínico |
-| `AI_PROVIDER` | openai | `openai`, `ollama`, `mock` |
-| `OPENAI_API_KEY` | — | Chave OpenAI |
-| `OPENAI_BASE_URL` | api.openai.com | Para Ollama: `http://127.0.0.1:11434/v1` |
-| `OPENAI_CHAT_MODEL` | gpt-4o-mini | Modelo chat |
-| `OPENAI_TRANSCRIBE_MODEL` | whisper-1 | Transcrição áudio |
-| `OPENAI_TIMEOUT` | 120 | Segundos |
+| `AI_PROVIDER` | openai | `openai` / `chatgpt` · `claude` / `anthropic` · `gemini` / `google` · `ollama` · `mock` |
+| `OPENAI_API_KEY` | — | Chave OpenAI (quando `AI_PROVIDER=openai`) |
+| `OPENAI_BASE_URL` | api.openai.com/v1 | Para Ollama: `http://127.0.0.1:11434/v1` |
+| `OPENAI_CHAT_MODEL` | gpt-4o-mini | Modelo chat OpenAI/Ollama |
+| `OPENAI_TRANSCRIBE_MODEL` | whisper-1 | Transcrição áudio (só OpenAI Whisper) |
+| `OPENAI_TIMEOUT` / `AI_TIMEOUT` | 120 | Timeout HTTP (segundos) |
+| `CLAUDE_API_KEY` ou `ANTHROPIC_API_KEY` | — | Chave Anthropic (`AI_PROVIDER=claude`) |
+| `CLAUDE_CHAT_MODEL` | claude-sonnet-4-20250514 | Modelo Claude |
+| `CLAUDE_BASE_URL` | api.anthropic.com | Base Anthropic |
+| `GEMINI_API_KEY` | — | Chave Google AI (`AI_PROVIDER=gemini`) |
+| `GEMINI_CHAT_MODEL` | gemini-2.0-flash | Modelo Gemini |
+| `GEMINI_BASE_URL` | generativelanguage.googleapis.com/v1beta | Base Gemini |
+
+**Notas:** troca de provedor = alterar `AI_PROVIDER` + chave correspondente + `php artisan config:clear`. Transcrição de áudio real continua só com OpenAI (Whisper); Claude/Gemini/Ollama usam simulação na transcrição.
 
 ---
 

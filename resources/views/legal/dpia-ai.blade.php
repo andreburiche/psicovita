@@ -63,8 +63,12 @@
             <p class="mt-1 text-base font-semibold text-slate-900 dark:text-white">{{ $providerLabel }}</p>
         </div>
         <p class="mt-4">
-            @if ($provider === 'openai')
-                {{ __('Quando OpenAI está ativo, texto e áudio podem ser transmitidos a servidores da OpenAI (possível transferência internacional). O profissional deve avaliar contratos e políticas do provedor.') }}
+            @if (in_array($provider, ['openai', 'chatgpt', 'gpt'], true))
+                {{ __('Quando OpenAI/ChatGPT está ativo, texto e áudio podem ser transmitidos a servidores da OpenAI (possível transferência internacional). O profissional deve avaliar contratos e políticas do provedor.') }}
+            @elseif (in_array($provider, ['claude', 'anthropic'], true))
+                {{ __('Com Anthropic Claude, o texto pode ser processado em servidores da Anthropic (possível transferência internacional). Avalie contratos, retenção e política de dados do provedor.') }}
+            @elseif (in_array($provider, ['gemini', 'google'], true))
+                {{ __('Com Google Gemini, o texto pode ser processado em servidores Google (possível transferência internacional). Avalie contratos e política de dados do Google AI.') }}
             @elseif ($provider === 'ollama')
                 {{ __('Com Ollama, o processamento ocorre na infraestrutura indicada pelo administrador (tipicamente local ou rede privada), reduzindo transferência a terceiros na nuvem.') }}
             @else

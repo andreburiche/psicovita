@@ -86,7 +86,7 @@ Referência completa: [docs/CONFIGURACAO.md](../docs/CONFIGURACAO.md)
 | `APP_URL` | `http://127.0.0.1:8080` | `https://psicovita.online` (sem `/public`) |
 | `LOG_LEVEL` | `debug` | `error` |
 | `DB_*` | XAMPP root | Credenciais cPanel |
-| `AI_PROVIDER` | `ollama` / `openai` | `mock` ou `openai` |
+| `AI_PROVIDER` | `ollama` / `openai` / `claude` / `gemini` | `mock` ou `openai` |
 | `WHATSAPP_ENABLED` | opcional Evolution local | `false` ou Meta/VPS |
 | `GOOGLE_REDIRECT_URI` | `http://127.0.0.1:8080/...` | `https://dominio/auth/google/callback` |
 
@@ -103,7 +103,9 @@ Referência completa: [docs/CONFIGURACAO.md](../docs/CONFIGURACAO.md)
 | Valor `AI_PROVIDER` | Uso |
 |---------------------|-----|
 | `mock` | Sem custo — respostas simuladas (recomendado no Start) |
-| `openai` | API cloud — precisa `OPENAI_API_KEY` |
+| `openai` / `chatgpt` | API OpenAI — `OPENAI_API_KEY` |
+| `claude` / `anthropic` | Anthropic — `CLAUDE_API_KEY` ou `ANTHROPIC_API_KEY` |
+| `gemini` / `google` | Google AI — `GEMINI_API_KEY` |
 | `ollama` | Só máquina local — `OPENAI_BASE_URL=http://127.0.0.1:11434/v1` |
 
 Script CPU local (se CUDA falhar): `scripts/ollama-cpu.ps1`

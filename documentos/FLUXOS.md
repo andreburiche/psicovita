@@ -406,7 +406,7 @@ flowchart LR
 | Recomendação | `POST /ia/recomendar-terapeuta` |
 | Guardar no prontuário | `POST /ia/salvar-prontuario` |
 
-**Provedores:** OpenAI · Ollama (local) · `mock` (`AI_PROVIDER`).
+**Provedores:** OpenAI/ChatGPT · Claude · Gemini · Ollama (local) · `mock` (`AI_PROVIDER`).
 
 ---
 

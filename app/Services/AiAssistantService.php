@@ -6,9 +6,9 @@ use App\Enums\AiRequestStatus;
 use App\Enums\AiRequestType;
 use App\Models\AiRequest;
 use App\Models\User;
+use App\Services\Ai\LlmGateway;
 use GuzzleHttp\Exception\ConnectException as GuzzleConnectException;
 use Illuminate\Http\Client\ConnectionException as HttpConnectionException;
-use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +18,10 @@ use Throwable;
 
 class AiAssistantService
 {
+    public function __construct(
+        private readonly LlmGateway $llm,
+    ) {}
+
     public function isApiConfigured(): bool
     {
         if (! (bool) Config::get('psiconecta.ai.enabled', true)) {
@@ -28,27 +32,20 @@ class AiAssistantService
     }
 
     /**
-     * Há um endpoint de chat (OpenAI na nuvem ou Ollama local) disponível para texto/recomendação.
+     * Há um endpoint de chat (OpenAI, Claude, Gemini ou Ollama) disponível.
      */
     public function llmChatEndpointReady(): bool
     {
-        $provider = $this->provider();
+        return $this->llm->chatReady();
+    }
 
-        if ($provider === 'mock') {
-            return false;
-        }
-
-        if ($provider === 'ollama') {
-            return true;
-        }
-
-        $key = Config::get('psiconecta.ai.openai_api_key');
-
-        return is_string($key) && trim($key) !== '';
+    public function provider(): string
+    {
+        return $this->llm->provider();
     }
 
     /**
-     * Transcrição real via API OpenAI (Whisper). Ollama/mock usam simulação na transcrição.
+     * Transcrição real via Whisper (OpenAI). Outros provedores usam simulação na transcrição.
      */
     public function openAiTranscriptionReady(): bool
     {
@@ -63,28 +60,6 @@ class AiAssistantService
         $key = Config::get('psiconecta.ai.openai_api_key');
 
         return is_string($key) && trim($key) !== '';
-    }
-
-    private function provider(): string
-    {
-        $p = strtolower((string) Config::get('psiconecta.ai.provider', 'openai'));
-
-        return in_array($p, ['openai', 'ollama', 'mock'], true) ? $p : 'openai';
-    }
-
-    /**
-     * URL base do endpoint /v1/chat/completions (OpenAI ou Ollama em modo compatível).
-     */
-    private function chatApiBaseUrl(): string
-    {
-        $raw = (string) Config::get('psiconecta.ai.openai_base_url', 'https://api.openai.com/v1');
-        $base = rtrim($raw, '/');
-
-        if ($this->provider() === 'ollama' && str_contains($base, 'api.openai.com')) {
-            return 'http://127.0.0.1:11434/v1';
-        }
-
-        return $base !== '' ? $base : 'https://api.openai.com/v1';
     }
 
     /**
@@ -119,27 +94,36 @@ class AiAssistantService
 
         if (stripos($m, 'Incorrect API key') !== false
             || stripos($m, 'invalid_api_key') !== false
-            || stripos($m, 'invalid x-api-key') !== false) {
-            return __('A chave OPENAI_API_KEY parece inválida ou revogada. Gere uma nova chave, atualize o .env e execute php artisan config:clear.');
+            || stripos($m, 'invalid x-api-key') !== false
+            || stripos($m, 'API_KEY_INVALID') !== false) {
+            return __('A chave da IA parece inválida ou revogada. Verifique OPENAI_API_KEY, CLAUDE_API_KEY ou GEMINI_API_KEY no .env e execute php artisan config:clear.');
         }
 
         if (stripos($m, 'rate_limit') !== false || stripos($m, '429') !== false) {
-            return __('Limite de pedidos da OpenAI. Aguarde alguns minutos e tente novamente.');
+            return __('Limite de pedidos do provedor de IA. Aguarde alguns minutos e tente novamente.');
         }
 
         if (str_contains($m, 'Chave OpenAI não configurada')) {
             return __('Defina OPENAI_API_KEY no .env e execute php artisan config:clear.');
         }
 
+        if (str_contains($m, 'Chave Claude') || str_contains($m, 'Chave Anthropic')) {
+            return __('Defina CLAUDE_API_KEY (ou ANTHROPIC_API_KEY) no .env e execute php artisan config:clear.');
+        }
+
+        if (str_contains($m, 'Chave Gemini não configurada')) {
+            return __('Defina GEMINI_API_KEY no .env e execute php artisan config:clear.');
+        }
+
         if (preg_match("/model ['\"]([^'\"]+)['\"] not found/i", $m, $modelMissing)) {
             return __(
-                'O modelo ":model" não está disponível no Ollama. Descarregue-o com: ollama pull :model — ou altere OPENAI_CHAT_MODEL no .env para um modelo que já exista (veja ollama list). Depois execute php artisan config:clear.',
+                'O modelo ":model" não está disponível. No Ollama: ollama pull :model. Noutros provedores, ajuste OPENAI_CHAT_MODEL / CLAUDE_CHAT_MODEL / GEMINI_CHAT_MODEL e execute php artisan config:clear.',
                 ['model' => $modelMissing[1]],
             );
         }
 
         if (str_starts_with($m, 'OpenAI (') || str_starts_with($m, 'LLM (')) {
-            return __('O serviço de modelo devolveu um erro. Se usa OpenAI, verifique conta e limites; se usa Ollama, confira se está em execução e o URL no .env.');
+            return __('O serviço de modelo devolveu um erro. Verifique o provedor (AI_PROVIDER), a chave e os limites da conta.');
         }
 
         return __('Ocorreu um erro inesperado. Tente novamente mais tarde.');
@@ -217,7 +201,11 @@ class AiAssistantService
                 'language' => 'pt',
             ]);
 
-        $this->throwUnlessLlmOk($response, 'transcrição');
+        if (! $response->successful()) {
+            $message = $response->json('error.message');
+            $message = is_string($message) ? $message : 'Erro HTTP '.$response->status();
+            throw new RuntimeException('LLM (transcrição): '.$message);
+        }
 
         $text = (string) ($response->json('text') ?? '');
         $text = trim($text);
@@ -315,71 +303,7 @@ class AiAssistantService
         int $maxTokens = 3500,
         float $temperature = 0.35,
     ): array {
-        $base = $this->chatApiBaseUrl();
-        $model = (string) Config::get('psiconecta.ai.openai_chat_model', 'gpt-4o-mini');
-        $timeout = (int) Config::get('psiconecta.ai.openai_timeout', 120);
-
-        $client = Http::timeout($timeout)
-            ->connectTimeout(25)
-            ->acceptJson();
-
-        $token = $this->resolveChatBearerToken();
-        if ($token !== null && $token !== '') {
-            $client = $client->withToken($token);
-        }
-
-        $response = $client->post($base.'/chat/completions', [
-            'model' => $model,
-            'messages' => [
-                ['role' => 'system', 'content' => $system],
-                ['role' => 'user', 'content' => $user],
-            ],
-            'max_tokens' => $maxTokens,
-            'temperature' => $temperature,
-        ]);
-
-        $this->throwUnlessLlmOk($response, 'chat');
-
-        $content = $response->json('choices.0.message.content');
-        if (! is_string($content) || trim($content) === '') {
-            throw new RuntimeException('Resposta vazia do modelo de chat.');
-        }
-
-        $tokens = $response->json('usage.total_tokens');
-        $tokensUsed = is_numeric($tokens) ? (int) $tokens : null;
-
-        return ['text' => trim($content), 'tokens_used' => $tokensUsed];
-    }
-
-    private function throwUnlessLlmOk(Response $response, string $contexto): void
-    {
-        if ($response->successful()) {
-            return;
-        }
-
-        $message = $response->json('error.message');
-        $message = is_string($message) ? $message : 'Erro HTTP '.$response->status();
-
-        throw new RuntimeException('LLM ('.$contexto.'): '.$message);
-    }
-
-    /**
-     * Bearer para APIs compatíveis OpenAI. Ollama: use "ollama" se OPENAI_API_KEY estiver vazio.
-     */
-    private function resolveChatBearerToken(): ?string
-    {
-        $raw = Config::get('psiconecta.ai.openai_api_key');
-        $trimmed = is_string($raw) ? trim($raw) : '';
-
-        if ($this->provider() === 'ollama') {
-            return $trimmed !== '' ? $trimmed : 'ollama';
-        }
-
-        if ($trimmed === '') {
-            throw new RuntimeException('Chave OpenAI não configurada.');
-        }
-
-        return $trimmed;
+        return $this->llm->chat($system, $user, $maxTokens, $temperature);
     }
 
     private function requireOpenAiKeyForTranscription(): string

@@ -34,18 +34,26 @@ return [
     'ai' => [
         'enabled' => env('AI_ASSISTANT_ENABLED', true),
         /**
-         * Provedor do modelo de texto (chat compatível OpenAI):
-         * - openai: API OpenAI (chave + faturação em platform.openai.com)
-         * - ollama: instância local Ollama (sem custo da OpenAI; instalar https://ollama.com)
-         * - mock: sempre respostas simuladas no browser (zero API externa)
+         * Provedor do chat:
+         * - openai | chatgpt | gpt → OpenAI
+         * - claude | anthropic → Anthropic Claude
+         * - gemini | google → Google Gemini
+         * - ollama → Ollama local (API compatível OpenAI)
+         * - mock → simulação sem API externa
          */
         'provider' => strtolower((string) env('AI_PROVIDER', 'openai')),
-        /** Chave Bearer (OpenAI); para Ollama use normalmente "ollama" ou qualquer valor — ver doc Ollama OpenAI compat. */
         'openai_api_key' => env('OPENAI_API_KEY'),
         'openai_base_url' => rtrim((string) env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/'),
         'openai_chat_model' => env('OPENAI_CHAT_MODEL', 'gpt-4o-mini'),
         'openai_transcribe_model' => env('OPENAI_TRANSCRIBE_MODEL', 'whisper-1'),
-        'openai_timeout' => (int) env('OPENAI_TIMEOUT', 120),
+        'openai_timeout' => (int) env('AI_TIMEOUT', env('OPENAI_TIMEOUT', 120)),
+        'claude_api_key' => env('CLAUDE_API_KEY', env('ANTHROPIC_API_KEY')),
+        'claude_base_url' => rtrim((string) env('CLAUDE_BASE_URL', 'https://api.anthropic.com'), '/'),
+        'claude_chat_model' => env('CLAUDE_CHAT_MODEL', 'claude-sonnet-4-20250514'),
+        'claude_api_version' => env('CLAUDE_API_VERSION', '2023-06-01'),
+        'gemini_api_key' => env('GEMINI_API_KEY'),
+        'gemini_base_url' => rtrim((string) env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'), '/'),
+        'gemini_chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-2.0-flash'),
     ],
 
     'video_conference' => [
