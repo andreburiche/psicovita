@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\SocialRegistrationController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\SessionInactivityController;
 use App\Http\Middleware\ValidateEmailVerificationSignature;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +64,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::post('/keep-alive', [SessionInactivityController::class, 'keepAlive'])
+        ->middleware('throttle:60,1')
+        ->name('session.keep-alive');
+    Route::get('/logout-por-inatividade', [SessionInactivityController::class, 'expire'])
+        ->name('session.inactivity-expire');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

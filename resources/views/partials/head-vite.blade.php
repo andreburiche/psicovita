@@ -65,6 +65,7 @@
     <script src="{{ asset('js/confirm-dialog-alpine.js') }}"></script>
     <script src="{{ asset('js/app-shell-alpine.js') }}"></script>
     <script src="{{ asset('js/avatar-editor-alpine.js') }}"></script>
+    <script src="{{ asset('js/inactivity-guard-alpine.js') }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/imask@7.6.1/dist/imask.min.js" crossorigin="anonymous"></script>
     <script defer src="{{ asset('js/form-widgets-fallback.js') }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" crossorigin="anonymous"></script>

@@ -40,6 +40,7 @@
         </div>
 
         <x-confirm-dialog />
+        <x-inactivity-guard />
         <x-chatbot-widget />
         @stack('scripts')
     </body>

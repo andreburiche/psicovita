@@ -8,6 +8,7 @@ import { createAnamnesisBuilderData } from './anamnesis-builder-data';
 import { createConfirmDialogData } from './confirm-dialog';
 import { createAppShellData } from './app-shell';
 import { createAvatarEditorData } from './avatar-editor';
+import { createInactivityGuardData } from './inactivity-guard';
 
 document.addEventListener('alpine:init', () => {
     if (! window.__psiconectaAppShellRegistered) {
@@ -18,6 +19,11 @@ document.addEventListener('alpine:init', () => {
     if (! window.__psiconectaAvatarEditorRegistered) {
         window.__psiconectaAvatarEditorRegistered = true;
         Alpine.data('avatarEditor', createAvatarEditorData);
+    }
+
+    if (! window.__psiconectaInactivityGuardRegistered) {
+        window.__psiconectaInactivityGuardRegistered = true;
+        Alpine.data('inactivityGuard', createInactivityGuardData);
     }
 
     if (! window.__psiconectaConfirmDialogRegistered) {

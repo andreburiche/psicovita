@@ -292,6 +292,28 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === UserRole::Patient;
     }
 
+    /**
+     * Timeout de inatividade (minutos) conforme o perfil do utilizador.
+     */
+    public function inactivityTimeoutMinutes(): int
+    {
+        $timeouts = config('security.inactivity_timeout', []);
+
+        if ($this->isAdmin() || $this->isSupportAgent()) {
+            return max(1, (int) ($timeouts['admin'] ?? 30));
+        }
+
+        if ($this->isProfessional()) {
+            return max(1, (int) ($timeouts['professional'] ?? 60));
+        }
+
+        if ($this->isPatient()) {
+            return max(1, (int) ($timeouts['patient'] ?? 60));
+        }
+
+        return max(1, (int) ($timeouts['default'] ?? 60));
+    }
+
     public function canUseSubscriptionFeature(string $feature): bool
     {
         return app(SubscriptionService::class)->canUseFeature($this, $feature);

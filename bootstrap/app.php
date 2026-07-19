@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('psiconecta:compliance-prune')->monthlyOn(1, '03:00');
     })
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckInactivity::class,
+        ]);
+
         $middleware->alias([
             'professional' => \App\Http\Middleware\EnsureProfessional::class,
             'patient.portal' => \App\Http\Middleware\EnsurePatientPortal::class,
