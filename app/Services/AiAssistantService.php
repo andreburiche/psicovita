@@ -88,8 +88,25 @@ class AiAssistantService
 
         if (stripos($m, 'exceeded your current quota') !== false
             || stripos($m, 'insufficient_quota') !== false
-            || stripos($m, 'Billing hard limit') !== false) {
-            return __('A conta OpenAI não tem cota disponível ou precisa de faturação ativa. Confirme em platform.openai.com/settings/billing.');
+            || stripos($m, 'Billing hard limit') !== false
+            || stripos($m, 'Quota exceeded') !== false
+            || stripos($m, 'free_tier') !== false) {
+            $isGemini = stripos($m, 'chat-gemini') !== false
+                || stripos($m, 'generativelanguage') !== false
+                || stripos($m, 'ai.google') !== false
+                || stripos($m, 'gemini') !== false;
+            $isClaude = stripos($m, 'chat-claude') !== false
+                || stripos($m, 'anthropic') !== false;
+
+            if ($isGemini) {
+                return __('Cota esgotada no Google Gemini (o failover a partir da OpenAI também falhou por limite/cota). Ative faturação/créditos em aistudio.google.com ou ai.dev/rate-limit, configure CLAUDE_API_KEY, ou use Ollama local (AI_PROVIDER=ollama).');
+            }
+
+            if ($isClaude) {
+                return __('Cota ou limite esgotado na conta Anthropic Claude. Confirme o plano em console.anthropic.com, ou use outro provedor no .env (AI_PROVIDER / AI_FAILOVER_PROVIDERS).');
+            }
+
+            return __('Cota esgotada na OpenAI (e nos fallbacks configurados, se houver). Confirme faturação em platform.openai.com/settings/billing, ou use Gemini/Claude/Ollama com cota disponível.');
         }
 
         if (stripos($m, 'Incorrect API key') !== false
@@ -100,7 +117,7 @@ class AiAssistantService
         }
 
         if (stripos($m, 'rate_limit') !== false || stripos($m, '429') !== false) {
-            return __('Limite de pedidos do provedor de IA. Aguarde alguns minutos e tente novamente.');
+            return __('Limite de pedidos do provedor de IA. Aguarde alguns minutos e tente novamente (ou configure outro provedor em AI_FAILOVER_PROVIDERS).');
         }
 
         if (str_contains($m, 'Chave OpenAI não configurada')) {

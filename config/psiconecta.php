@@ -42,6 +42,13 @@ return [
          * - mock → simulação sem API externa
          */
         'provider' => strtolower((string) env('AI_PROVIDER', 'openai')),
+        /** Se true, tenta AI_FAILOVER_PROVIDERS quando o principal falha (cota, 429, 5xx…). */
+        'failover_enabled' => filter_var(env('AI_FAILOVER_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        /** Lista separada por vírgula, ex.: gemini,claude,ollama */
+        'failover_providers' => array_values(array_filter(array_map(
+            static fn (string $p): string => strtolower(trim($p)),
+            preg_split('/\s*,\s*/', (string) env('AI_FAILOVER_PROVIDERS', 'gemini,claude,ollama')) ?: []
+        ))),
         'openai_api_key' => env('OPENAI_API_KEY'),
         'openai_base_url' => rtrim((string) env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/'),
         'openai_chat_model' => env('OPENAI_CHAT_MODEL', 'gpt-4o-mini'),

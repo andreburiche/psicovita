@@ -5,10 +5,13 @@ namespace App\Services\Ai;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * Chat multi-provedor: openai | ollama | claude | gemini | mock.
+ * Com failover opcional entre provedores com chave configurada.
  */
 class LlmGateway
 {
@@ -16,16 +19,7 @@ class LlmGateway
 
     public function provider(): string
     {
-        $raw = strtolower((string) Config::get('psiconecta.ai.provider', 'openai'));
-
-        return match ($raw) {
-            'chatgpt', 'gpt', 'openai' => 'openai',
-            'anthropic', 'claude' => 'claude',
-            'google', 'gemini' => 'gemini',
-            'ollama' => 'ollama',
-            'mock' => 'mock',
-            default => in_array($raw, self::PROVIDERS, true) ? $raw : 'openai',
-        };
+        return $this->normalizeProvider((string) Config::get('psiconecta.ai.provider', 'openai'));
     }
 
     public function chatReady(): bool
@@ -34,14 +28,13 @@ class LlmGateway
             return false;
         }
 
-        return match ($this->provider()) {
-            'mock' => false,
-            'ollama' => true,
-            'openai' => filled($this->openaiKey()),
-            'claude' => filled($this->claudeKey()),
-            'gemini' => filled($this->geminiKey()),
-            default => false,
-        };
+        foreach ($this->providerChain() as $provider) {
+            if ($this->providerReady($provider)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -53,17 +46,57 @@ class LlmGateway
         int $maxTokens = 3500,
         float $temperature = 0.35,
     ): array {
-        return match ($this->provider()) {
-            'claude' => $this->chatClaude($system, $user, $maxTokens, $temperature),
-            'gemini' => $this->chatGemini($system, $user, $maxTokens, $temperature),
-            'openai', 'ollama' => $this->chatOpenAiCompatible($system, $user, $maxTokens, $temperature),
-            default => throw new RuntimeException('LLM não configurado.'),
-        };
+        $chain = $this->providerChain();
+        if ($chain === []) {
+            throw new RuntimeException('LLM não configurado.');
+        }
+
+        $last = null;
+
+        foreach ($chain as $index => $provider) {
+            try {
+                $result = $this->chatUsing($provider, $system, $user, $maxTokens, $temperature);
+
+                if ($index > 0) {
+                    Log::info('IA: failover usou provedor secundário.', [
+                        'provider' => $provider,
+                        'primary' => $chain[0],
+                    ]);
+                }
+
+                return $result;
+            } catch (Throwable $e) {
+                $last = $e;
+                $hasNext = isset($chain[$index + 1]);
+
+                if (! $hasNext || ! $this->shouldFailover($e)) {
+                    throw $e;
+                }
+
+                Log::warning('IA: falha no provedor; tentando failover.', [
+                    'provider' => $provider,
+                    'next' => $chain[$index + 1],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($last instanceof Throwable) {
+            throw new RuntimeException(
+                'Todos os provedores de IA da cadeia falharam. Último erro: '.$last->getMessage(),
+                0,
+                $last,
+            );
+        }
+
+        throw new RuntimeException('LLM não configurado.');
     }
 
-    public function chatModel(): string
+    public function chatModel(?string $provider = null): string
     {
-        return match ($this->provider()) {
+        $provider = $this->normalizeProvider($provider ?? $this->provider());
+
+        return match ($provider) {
             'claude' => (string) Config::get('psiconecta.ai.claude_chat_model', 'claude-sonnet-4-20250514'),
             'gemini' => (string) Config::get('psiconecta.ai.gemini_chat_model', 'gemini-2.0-flash'),
             default => (string) Config::get('psiconecta.ai.openai_chat_model', 'gpt-4o-mini'),
@@ -71,17 +104,152 @@ class LlmGateway
     }
 
     /**
+     * Cadeia: provedor principal + fallbacks configurados (só os ready, sem mock).
+     *
+     * @return list<string>
+     */
+    public function providerChain(): array
+    {
+        $primary = $this->provider();
+        $chain = [];
+
+        if ($primary !== 'mock' && $this->providerReady($primary)) {
+            $chain[] = $primary;
+        }
+
+        if (! (bool) Config::get('psiconecta.ai.failover_enabled', true)) {
+            return $chain;
+        }
+
+        foreach ($this->configuredFailoverProviders() as $candidate) {
+            if ($candidate === 'mock' || in_array($candidate, $chain, true)) {
+                continue;
+            }
+            if ($this->providerReady($candidate)) {
+                $chain[] = $candidate;
+            }
+        }
+
+        return $chain;
+    }
+
+    public function providerReady(string $provider): bool
+    {
+        $provider = $this->normalizeProvider($provider);
+
+        return match ($provider) {
+            'mock' => false,
+            'ollama' => true,
+            'openai' => filled($this->openaiKey()),
+            'claude' => filled($this->claudeKey()),
+            'gemini' => filled($this->geminiKey()),
+            default => false,
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function configuredFailoverProviders(): array
+    {
+        $raw = Config::get('psiconecta.ai.failover_providers', ['gemini', 'claude', 'ollama']);
+
+        if (is_string($raw)) {
+            $parts = preg_split('/[\s,|]+/', $raw) ?: [];
+        } elseif (is_array($raw)) {
+            $parts = $raw;
+        } else {
+            $parts = ['gemini', 'claude', 'ollama'];
+        }
+
+        $out = [];
+        foreach ($parts as $part) {
+            if (! is_string($part) && ! is_numeric($part)) {
+                continue;
+            }
+            $normalized = $this->normalizeProvider((string) $part);
+            if (in_array($normalized, self::PROVIDERS, true) && $normalized !== 'mock') {
+                $out[] = $normalized;
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    private function normalizeProvider(string $raw): string
+    {
+        $raw = strtolower(trim($raw));
+
+        return match ($raw) {
+            'chatgpt', 'gpt', 'openai' => 'openai',
+            'anthropic', 'claude' => 'claude',
+            'google', 'gemini' => 'gemini',
+            'ollama' => 'ollama',
+            'mock' => 'mock',
+            default => in_array($raw, self::PROVIDERS, true) ? $raw : 'openai',
+        };
+    }
+
+    private function shouldFailover(Throwable $e): bool
+    {
+        $m = $e->getMessage();
+
+        $needles = [
+            'exceeded your current quota',
+            'insufficient_quota',
+            'Billing hard limit',
+            'rate_limit',
+            'Rate limit',
+            '429',
+            '503',
+            '502',
+            '500',
+            'overloaded',
+            'temporarily unavailable',
+            'service unavailable',
+            'capacity',
+        ];
+
+        foreach ($needles as $needle) {
+            if (stripos($m, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @return array{text: string, tokens_used: ?int}
      */
-    private function chatOpenAiCompatible(
+    private function chatUsing(
+        string $provider,
         string $system,
         string $user,
         int $maxTokens,
         float $temperature,
     ): array {
-        $base = $this->openAiCompatibleBaseUrl();
+        return match ($provider) {
+            'claude' => $this->chatClaude($system, $user, $maxTokens, $temperature),
+            'gemini' => $this->chatGemini($system, $user, $maxTokens, $temperature),
+            'openai', 'ollama' => $this->chatOpenAiCompatible($provider, $system, $user, $maxTokens, $temperature),
+            default => throw new RuntimeException('LLM não configurado.'),
+        };
+    }
+
+    /**
+     * @return array{text: string, tokens_used: ?int}
+     */
+    private function chatOpenAiCompatible(
+        string $provider,
+        string $system,
+        string $user,
+        int $maxTokens,
+        float $temperature,
+    ): array {
+        $base = $this->openAiCompatibleBaseUrl($provider);
         $timeout = $this->timeout();
-        $token = $this->resolveOpenAiCompatibleBearer();
+        $token = $this->resolveOpenAiCompatibleBearer($provider);
 
         $client = Http::timeout($timeout)
             ->connectTimeout(25)
@@ -92,7 +260,7 @@ class LlmGateway
         }
 
         $response = $client->post($base.'/chat/completions', [
-            'model' => $this->chatModel(),
+            'model' => $this->chatModel($provider),
             'messages' => [
                 ['role' => 'system', 'content' => $system],
                 ['role' => 'user', 'content' => $user],
@@ -141,7 +309,7 @@ class LlmGateway
                 'anthropic-version' => $version,
             ])
             ->post($base.'/v1/messages', [
-                'model' => $this->chatModel(),
+                'model' => $this->chatModel('claude'),
                 'max_tokens' => $maxTokens,
                 'temperature' => $temperature,
                 'system' => $system,
@@ -192,7 +360,7 @@ class LlmGateway
         }
 
         $base = rtrim((string) Config::get('psiconecta.ai.gemini_base_url', 'https://generativelanguage.googleapis.com/v1beta'), '/');
-        $model = rawurlencode($this->chatModel());
+        $model = rawurlencode($this->chatModel('gemini'));
         $url = $base.'/models/'.$model.':generateContent?key='.urlencode($key);
 
         $response = Http::timeout($this->timeout())
@@ -237,21 +405,21 @@ class LlmGateway
         ];
     }
 
-    private function openAiCompatibleBaseUrl(): string
+    private function openAiCompatibleBaseUrl(string $provider): string
     {
         $raw = (string) Config::get('psiconecta.ai.openai_base_url', 'https://api.openai.com/v1');
         $base = rtrim($raw, '/');
 
-        if ($this->provider() === 'ollama' && str_contains($base, 'api.openai.com')) {
+        if ($provider === 'ollama' && str_contains($base, 'api.openai.com')) {
             return 'http://127.0.0.1:11434/v1';
         }
 
         return $base !== '' ? $base : 'https://api.openai.com/v1';
     }
 
-    private function resolveOpenAiCompatibleBearer(): ?string
+    private function resolveOpenAiCompatibleBearer(string $provider): ?string
     {
-        if ($this->provider() === 'ollama') {
+        if ($provider === 'ollama') {
             $key = $this->openaiKey();
 
             return $key !== '' ? $key : 'ollama';

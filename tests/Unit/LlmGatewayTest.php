@@ -90,10 +90,91 @@ class LlmGatewayTest extends TestCase
             'psiconecta.ai.enabled' => true,
             'psiconecta.ai.provider' => 'claude',
             'psiconecta.ai.claude_api_key' => '',
+            'psiconecta.ai.failover_enabled' => false,
+            'psiconecta.ai.openai_api_key' => '',
+            'psiconecta.ai.gemini_api_key' => '',
         ]);
         $this->assertFalse($gateway->chatReady());
 
         config(['psiconecta.ai.claude_api_key' => 'sk-ant-test']);
         $this->assertTrue($gateway->chatReady());
+    }
+
+    public function test_chat_failovers_from_openai_quota_to_gemini(): void
+    {
+        config([
+            'psiconecta.ai.enabled' => true,
+            'psiconecta.ai.provider' => 'openai',
+            'psiconecta.ai.failover_enabled' => true,
+            'psiconecta.ai.failover_providers' => ['gemini', 'claude'],
+            'psiconecta.ai.openai_api_key' => 'sk-test-openai',
+            'psiconecta.ai.openai_base_url' => 'https://api.openai.com/v1',
+            'psiconecta.ai.openai_chat_model' => 'gpt-4o-mini',
+            'psiconecta.ai.gemini_api_key' => 'test-gemini-key',
+            'psiconecta.ai.gemini_base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+            'psiconecta.ai.gemini_chat_model' => 'gemini-2.0-flash',
+            'psiconecta.ai.claude_api_key' => '',
+        ]);
+
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'error' => [
+                    'message' => 'You exceeded your current quota, please check your plan and billing details.',
+                    'type' => 'insufficient_quota',
+                    'code' => 'insufficient_quota',
+                ],
+            ], 429),
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'Resposta via Gemini (failover)']]]],
+                ],
+                'usageMetadata' => [
+                    'promptTokenCount' => 3,
+                    'candidatesTokenCount' => 7,
+                ],
+            ], 200),
+        ]);
+
+        $result = app(LlmGateway::class)->chat('sistema', 'utilizador');
+
+        $this->assertSame('Resposta via Gemini (failover)', $result['text']);
+        $this->assertSame(10, $result['tokens_used']);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'api.openai.com'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'generateContent'));
+    }
+
+    public function test_invalid_api_key_does_not_failover(): void
+    {
+        config([
+            'psiconecta.ai.enabled' => true,
+            'psiconecta.ai.provider' => 'openai',
+            'psiconecta.ai.failover_enabled' => true,
+            'psiconecta.ai.failover_providers' => ['gemini'],
+            'psiconecta.ai.openai_api_key' => 'sk-bad',
+            'psiconecta.ai.openai_base_url' => 'https://api.openai.com/v1',
+            'psiconecta.ai.gemini_api_key' => 'test-gemini-key',
+            'psiconecta.ai.gemini_base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+        ]);
+
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'error' => [
+                    'message' => 'Incorrect API key provided',
+                    'type' => 'invalid_request_error',
+                    'code' => 'invalid_api_key',
+                ],
+            ], 401),
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'não deveria chegar']]]],
+                ],
+            ], 200),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Incorrect API key');
+
+        app(LlmGateway::class)->chat('sistema', 'utilizador');
     }
 }
